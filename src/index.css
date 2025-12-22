@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 28 20% 97%;
+    --foreground: 28 15% 15%;
+    --card: 28 25% 98%;
+    --card-foreground: 28 15% 15%;
+    --popover: 28 30% 98%;
+    --popover-foreground: 28 15% 15%;
+    --primary: 25 60% 45%;
+    --primary-foreground: 28 5% 98%;
+    --secondary: 280 30% 50%;
+    --secondary-foreground: 28 5% 98%;
+    --muted: 28 15% 92%;
+    --muted-foreground: 28 8% 45%;
+    --accent: 35 80% 55%;
+    --accent-foreground: 28 5% 15%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 28 20% 85%;
+    --input: 28 20% 85%;
+    --ring: 25 60% 45%;
+    --radius: 0.75rem;
+    
+    /* Fantasy theme variables */
+    --fantasy-gold: 45 90% 55%;
+    --fantasy-stone: 28 10% 60%;
+    --fantasy-parchment: 40 35% 90%;
+    --fantasy-wood: 25 40% 35%;
+    --fantasy-magic: 280 50% 60%;
+    
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 28 25% 8%;
+    --foreground: 28 10% 92%;
+    --card: 28 20% 12%;
+    --card-foreground: 28 10% 92%;
+    --popover: 28 25% 10%;
+    --popover-foreground: 28 10% 92%;
+    --primary: 25 65% 50%;
+    --primary-foreground: 28 5% 98%;
+    --secondary: 280 35% 55%;
+    --secondary-foreground: 28 5% 98%;
+    --muted: 28 15% 18%;
+    --muted-foreground: 28 8% 60%;
+    --accent: 35 85% 60%;
+    --accent-foreground: 28 5% 98%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 28 20% 20%;
+    --input: 28 20% 20%;
+    --ring: 25 65% 50%;
+    
+    /* Fantasy theme variables - dark mode */
+    --fantasy-gold: 45 85% 60%;
+    --fantasy-stone: 28 8% 45%;
+    --fantasy-parchment: 40 25% 25%;
+    --fantasy-wood: 25 35% 25%;
+    --fantasy-magic: 280 55% 65%;
+    
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
