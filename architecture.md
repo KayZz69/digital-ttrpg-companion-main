@@ -1,71 +1,54 @@
 # Architecture
 
-Digital TTRPG Companion - a React-based tabletop RPG character management app.
+Digital TTRPG Companion is a React SPA for character management, combat tracking, dice rolling, and session journaling.
 
-## Component Hierarchy
+## Stack
 
-```mermaid
-graph TD
-    App --> Index[Index / Character Creation]
-    App --> CharacterList
-    App --> CharacterView
-    App --> DiceRoller
-    App --> SessionJournal
-    App --> CombatTracker
-    App --> NPCLibrary
-    
-    CharacterView --> InventoryManager
-    CharacterView --> SkillsManager
-    CharacterView --> SavingThrowsManager
-    CharacterView --> SpellsManager
-    
-    CombatTracker --> CombatParticipant
-    SessionJournal --> JournalEntryCard
-```
+- Vite + React 18 + TypeScript
+- Tailwind CSS + shadcn/ui
+- react-router-dom v6 for client routing
+- Browser localStorage for persistence (no backend)
+
+## Routing
+
+- `/` -> Character creation wizard
+- `/characters` -> Character list
+- `/character/:id` -> Character sheet view
+- `/character/:id/edit` -> Character edit flow
+- `/character/:id/journal` -> Session journal
+- `/character/:id/combat` -> Combat tracker
+- `/dice` -> Dice roller
+- `/npc-library` -> NPC library
 
 ## Data Flow
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌────────────────┐
-│   React State   │ ←→  │   localStorage   │ ←→  │   JSON Data    │
-│   (useState)    │     │   Persistence    │     │   (strings)    │
-└─────────────────┘     └──────────────────┘     └────────────────┘
-```
+State is managed in React components and persisted to localStorage as JSON.
 
-**Storage Keys**:
-- `soloquest_characters` - Character data
-- `soloquest_npcs` - NPC library
-- `soloquest_journal` - Session journal entries
+- React state <-> localStorage <-> JSON serialization
+
+Storage keys:
+- `soloquest_characters` -> character data
+- `soloquest_npcs` -> NPC library
+- `soloquest_journal` -> session journal entries
+
+Changing key names or stored JSON shape is a breaking change for existing local data.
 
 ## Layer Structure
 
 | Layer | Path | Purpose |
 |-------|------|---------|
-| Pages | `/src/pages/` | Route-level components |
-| Components | `/src/components/` | Reusable UI components |
-| UI | `/src/components/ui/` | shadcn/ui primitives |
-| Types | `/src/types/` | TypeScript interfaces |
-| Data | `/src/data/` | D&D 5e game data (classes, spells, equipment) |
-| Utils | `/src/utils/` | Helper functions |
-| Hooks | `/src/hooks/` | Custom React hooks |
+| Pages | `src/pages/` | Route-level components |
+| Components | `src/components/` | Feature and reusable components |
+| UI primitives | `src/components/ui/` | shadcn/ui primitives |
+| Types | `src/types/` | Domain interfaces |
+| Data | `src/data/` | Static D&D 5e data |
+| Utils | `src/utils/` | Pure helper logic |
+| Hooks | `src/hooks/` | Custom React hooks |
+| Lib | `src/lib/` | Shared utilities |
 
 ## Key Subsystems
 
-### Character Management
-- **Create**: Index page with CharacterWizard steps
-- **View/Edit**: CharacterView with HP, inventory, skills, spells
-- **List**: CharacterList with search/filter
-
-### Combat Tracking
-- Initiative order management
-- HP tracking with sync to character data
-- Condition tracking with duration
-
-### Dice Rolling
-- D4-D20 support with modifiers
-- Advantage/disadvantage modes
-- Roll history
-
-### Session Journal
-- Timestamped entries with tags
-- Search and filter by tag type
+- Character Management: create, view/edit, list, and persist characters.
+- Combat Tracking: initiative ordering, HP updates, and condition tracking.
+- Dice Rolling: d4-d20 rolls, modifiers, advantage/disadvantage, history.
+- Session Journal: timestamped entries with filtering/tagging.
