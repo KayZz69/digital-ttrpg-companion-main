@@ -150,10 +150,11 @@ export const SkillsManager = ({ abilityScores, level, skills, onUpdateSkills, re
         </div>
         <div className="mt-4 p-3 rounded-md bg-muted/30 text-xs text-muted-foreground">
           <p className="font-medium mb-1">Legend:</p>
-          <p>• One checkbox = Proficient (adds proficiency bonus)</p>
-          <p>• Two checkboxes = Expert (adds double proficiency bonus)</p>
+          <p>- One checkbox = Proficient (adds proficiency bonus)</p>
+          <p>- Two checkboxes = Expert (adds double proficiency bonus)</p>
         </div>
       </CardContent>
     </Card>
   );
 };
+

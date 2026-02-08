@@ -18,6 +18,7 @@ import { SavingThrowsManager } from "@/components/SavingThrowsManager";
 import { SpellsManager } from "@/components/SpellsManager";
 import { ArrowLeft, Edit, Dices, Heart, Skull, Plus, Minus, Moon, Sun, X, Circle, CheckCircle2, XCircle, BookOpen, Swords } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { readCharacters, writeCharacters } from "@/lib/storage";
 
 /**
  * Character View page component.
@@ -38,44 +39,43 @@ export const CharacterView = () => {
   const navigate = useNavigate();
   const [character, setCharacter] = useState<Character | null>(null);
   const [hpAdjustment, setHpAdjustment] = useState<string>("");
+  const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
 
   useEffect(() => {
     if (id) {
       loadCharacter(id);
+    } else {
+      setStatus("not_found");
     }
   }, [id]);
 
   const loadCharacter = (characterId: string) => {
-    const saved = localStorage.getItem("soloquest_characters");
-    if (saved) {
-      const characters: Character[] = JSON.parse(saved);
-      const found = characters.find((c) => c.id === characterId);
-      if (found) {
-        setCharacter(found);
-      } else {
-        toast({
-          title: "Character Not Found",
-          description: "The character you're looking for doesn't exist.",
-          variant: "destructive",
-        });
-        navigate("/characters");
-      }
+    const characters = readCharacters();
+    const found = characters.find((c) => c.id === characterId);
+    if (found) {
+      setCharacter(found);
+      setStatus("ready");
+    } else {
+      setCharacter(null);
+      setStatus("not_found");
+      toast({
+        title: "Character Not Found",
+        description: "The character you're looking for doesn't exist.",
+        variant: "destructive",
+      });
     }
   };
 
   const saveCharacter = (updatedCharacter: Character) => {
-    const saved = localStorage.getItem("soloquest_characters");
-    if (saved) {
-      const characters: Character[] = JSON.parse(saved);
-      const index = characters.findIndex((c) => c.id === updatedCharacter.id);
-      if (index !== -1) {
-        characters[index] = {
-          ...updatedCharacter,
-          updatedAt: new Date().toISOString(),
-        };
-        localStorage.setItem("soloquest_characters", JSON.stringify(characters));
-        setCharacter(characters[index]);
-      }
+    const characters = readCharacters();
+    const index = characters.findIndex((c) => c.id === updatedCharacter.id);
+    if (index !== -1) {
+      characters[index] = {
+        ...updatedCharacter,
+        updatedAt: new Date().toISOString(),
+      };
+      writeCharacters(characters);
+      setCharacter(characters[index]);
     }
   };
 
@@ -384,10 +384,30 @@ export const CharacterView = () => {
     });
   };
 
-  if (!character) {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading character...</p>
+      </div>
+    );
+  }
+
+  if (status === "not_found" || !character) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Character Not Found</CardTitle>
+            <CardDescription>
+              This character could not be loaded. It may have been deleted or corrupted.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate("/characters")} className="w-full">
+              Back to Characters
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -428,7 +448,7 @@ export const CharacterView = () => {
               <div>
                 <CardTitle className="text-3xl mb-2">{dndCharacter.name}</CardTitle>
                 <CardDescription className="text-lg">
-                  {dndCharacter.race} {dndCharacter.class} • Level {dndCharacter.level}
+                  {dndCharacter.race} {dndCharacter.class} | Level {dndCharacter.level}
                 </CardDescription>
               </div>
               <span className="text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
@@ -793,3 +813,4 @@ export const CharacterView = () => {
     </div>
   );
 };
+

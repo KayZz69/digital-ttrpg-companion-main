@@ -86,8 +86,8 @@ export interface Weapon extends Equipment {
   category: "simple" | "martial";
   weaponType: "melee" | "ranged";
   damage: {
-    dice: string; // e.g., "1d8" or "—" for non-damaging weapons
-    type: "slashing" | "piercing" | "bludgeoning" | "—";
+    dice: string; // e.g., "1d8" or "" for non-damaging weapons
+    type: "slashing" | "piercing" | "bludgeoning" | "";
   };
   properties: string[]; // e.g., ["finesse", "light", "thrown"]
   range?: {
@@ -108,3 +108,4 @@ export interface AdventuringGear extends Equipment {
   type: "adventuringGear";
   category?: string; // e.g., "container", "light", "healing"
 }
+

@@ -57,12 +57,12 @@ export const SavingThrowsStep = ({ character, setCharacter }: SavingThrowsStepPr
   };
 
   const abilities: Array<{ name: keyof DnD5eAbilityScores; label: string; icon: string }> = [
-    { name: "strength", label: "Strength", icon: "💪" },
-    { name: "dexterity", label: "Dexterity", icon: "🎯" },
-    { name: "constitution", label: "Constitution", icon: "❤️" },
-    { name: "intelligence", label: "Intelligence", icon: "🧠" },
-    { name: "wisdom", label: "Wisdom", icon: "🦉" },
-    { name: "charisma", label: "Charisma", icon: "✨" },
+    { name: "strength", label: "Strength", icon: "STR" },
+    { name: "dexterity", label: "Dexterity", icon: "DEX" },
+    { name: "constitution", label: "Constitution", icon: "CON" },
+    { name: "intelligence", label: "Intelligence", icon: "INT" },
+    { name: "wisdom", label: "Wisdom", icon: "WIS" },
+    { name: "charisma", label: "Charisma", icon: "CHA" },
   ];
 
   return (
@@ -131,18 +131,19 @@ export const SavingThrowsStep = ({ character, setCharacter }: SavingThrowsStepPr
         <CardContent className="pt-6">
           <div className="space-y-2 text-sm">
             <p className="font-semibold">Saving Throws:</p>
-            <p className="text-muted-foreground">
-              • Each class grants proficiency in exactly two saving throws
-            </p>
-            <p className="text-muted-foreground">
-              • These proficiencies are determined by your class and cannot be changed
-            </p>
-            <p className="text-muted-foreground">
-              • Proficiency adds +{getProficiencyBonus(level)} to your saving throw rolls
-            </p>
+              <p className="text-muted-foreground">
+                - Each class grants proficiency in exactly two saving throws
+              </p>
+              <p className="text-muted-foreground">
+                - These proficiencies are determined by your class and cannot be changed
+              </p>
+              <p className="text-muted-foreground">
+                - Proficiency adds +{getProficiencyBonus(level)} to your saving throw rolls
+              </p>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 };
+

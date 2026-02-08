@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { JournalEntryCard } from "@/components/JournalEntryCard";
 import { ArrowLeft, BookOpen, Plus, Search, X, MapPin, User, Target, Swords, Coins, FileText, LucideIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { readCharacters, readJournalEntries, writeJournalEntries } from "@/lib/storage";
 
 /**
  * Session Journal page component.
@@ -37,6 +38,7 @@ export const SessionJournal = () => {
   const [filterTag, setFilterTag] = useState<string>("all");
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -51,6 +53,8 @@ export const SessionJournal = () => {
     if (id) {
       loadCharacter(id);
       loadEntries(id);
+    } else {
+      setStatus("not_found");
     }
   }, [id]);
 
@@ -59,25 +63,28 @@ export const SessionJournal = () => {
   }, [entries, searchQuery, filterTag]);
 
   const loadCharacter = (characterId: string) => {
-    const saved = localStorage.getItem("soloquest_characters");
-    if (saved) {
-      const characters: Character[] = JSON.parse(saved);
-      const found = characters.find((c) => c.id === characterId);
-      if (found) {
-        setCharacter(found);
-      }
+    const characters: Character[] = readCharacters();
+    const found = characters.find((c) => c.id === characterId);
+    if (found) {
+      setCharacter(found);
+      setStatus("ready");
+    } else {
+      setCharacter(null);
+      setStatus("not_found");
+      toast({
+        title: "Character Not Found",
+        description: "This journal cannot load because the character is missing.",
+        variant: "destructive",
+      });
     }
   };
 
   const loadEntries = (characterId: string) => {
-    const saved = localStorage.getItem("soloquest_journal");
-    if (saved) {
-      const allEntries: JournalEntry[] = JSON.parse(saved);
-      const characterEntries = allEntries
-        .filter((e) => e.characterId === characterId)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setEntries(characterEntries);
-    }
+    const allEntries: JournalEntry[] = readJournalEntries();
+    const characterEntries = allEntries
+      .filter((e) => e.characterId === characterId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    setEntries(characterEntries);
   };
 
   const saveEntry = () => {
@@ -90,8 +97,7 @@ export const SessionJournal = () => {
       return;
     }
 
-    const saved = localStorage.getItem("soloquest_journal");
-    const allEntries: JournalEntry[] = saved ? JSON.parse(saved) : [];
+    const allEntries: JournalEntry[] = readJournalEntries();
 
     if (editingEntry) {
       // Update existing entry
@@ -119,7 +125,7 @@ export const SessionJournal = () => {
       allEntries.push(newEntry);
     }
 
-    localStorage.setItem("soloquest_journal", JSON.stringify(allEntries));
+    writeJournalEntries(allEntries);
     loadEntries(id);
     resetForm();
 
@@ -130,18 +136,15 @@ export const SessionJournal = () => {
   };
 
   const deleteEntry = (entryId: string) => {
-    const saved = localStorage.getItem("soloquest_journal");
-    if (saved) {
-      const allEntries: JournalEntry[] = JSON.parse(saved);
-      const filtered = allEntries.filter((e) => e.id !== entryId);
-      localStorage.setItem("soloquest_journal", JSON.stringify(filtered));
-      loadEntries(id!);
+    const allEntries: JournalEntry[] = readJournalEntries();
+    const filtered = allEntries.filter((e) => e.id !== entryId);
+    writeJournalEntries(filtered);
+    loadEntries(id!);
 
-      toast({
-        title: "Entry Deleted",
-        description: "Your journal entry has been deleted.",
-      });
-    }
+    toast({
+      title: "Entry Deleted",
+      description: "Your journal entry has been deleted.",
+    });
   };
 
   const editEntry = (entry: JournalEntry) => {
@@ -203,10 +206,30 @@ export const SessionJournal = () => {
     general: FileText,
   };
 
-  if (!character) {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (status === "not_found" || !character) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Journal Unavailable</CardTitle>
+            <CardDescription>
+              The selected character could not be loaded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate("/characters")} className="w-full">
+              Back to Characters
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

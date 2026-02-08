@@ -208,13 +208,13 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
           <div className="space-y-2 text-sm">
             <p className="font-semibold">Skill Selection Rules:</p>
             <p className="text-muted-foreground">
-              • Your class determines which skills you can choose
+              - Your class determines which skills you can choose
             </p>
             <p className="text-muted-foreground">
-              • First checkbox = Proficient (adds proficiency bonus)
+              - First checkbox = Proficient (adds proficiency bonus)
             </p>
             <p className="text-muted-foreground">
-              • Second checkbox = Expertise (doubles proficiency bonus)
+              - Second checkbox = Expertise (doubles proficiency bonus)
             </p>
           </div>
         </CardContent>
@@ -222,3 +222,4 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
     </div>
   );
 };
+

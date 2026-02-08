@@ -14,12 +14,12 @@ interface AbilityScoresStepProps {
 }
 
 const ABILITY_INFO: Record<keyof DnD5eAbilityScores, { icon: string; description: string }> = {
-  strength: { icon: "💪", description: "Physical power and athleticism" },
-  dexterity: { icon: "🎯", description: "Agility and reflexes" },
-  constitution: { icon: "❤️", description: "Health and stamina" },
-  intelligence: { icon: "🧠", description: "Reasoning and memory" },
-  wisdom: { icon: "🦉", description: "Awareness and insight" },
-  charisma: { icon: "✨", description: "Force of personality" },
+  strength: { icon: "STR", description: "Physical power and athleticism" },
+  dexterity: { icon: "DEX", description: "Agility and reflexes" },
+  constitution: { icon: "CON", description: "Health and stamina" },
+  intelligence: { icon: "INT", description: "Reasoning and memory" },
+  wisdom: { icon: "WIS", description: "Awareness and insight" },
+  charisma: { icon: "CHA", description: "Force of personality" },
 };
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
@@ -467,3 +467,4 @@ export const AbilityScoresStep = ({ character, setCharacter }: AbilityScoresStep
     </div>
   );
 };
+

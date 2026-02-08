@@ -99,9 +99,10 @@ export const SavingThrowsManager = ({
         </div>
         <div className="mt-4 p-3 rounded-md bg-muted/30 text-xs text-muted-foreground">
           <p className="font-medium mb-1">Legend:</p>
-          <p>• Checked = Proficient (adds proficiency bonus to saving throw)</p>
+          <p>- Checked = Proficient (adds proficiency bonus to saving throw)</p>
         </div>
       </CardContent>
     </Card>
   );
 };
+

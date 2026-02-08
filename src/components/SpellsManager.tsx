@@ -143,6 +143,8 @@ export const SpellsManager = ({
     return `Level ${level}`;
   };
 
+  const sortedPreparedSpells = [...preparedSpells].sort((a, b) => a.level - b.level);
+
   return (
     <Card>
       <CardHeader>
@@ -358,9 +360,7 @@ export const SpellsManager = ({
             </p>
           ) : (
             <div className="space-y-3">
-              {preparedSpells
-                .sort((a, b) => a.level - b.level)
-                .map((spell) => (
+              {sortedPreparedSpells.map((spell) => (
                   <div
                     key={spell.id}
                     className="p-4 rounded-lg bg-muted space-y-2"
@@ -370,7 +370,7 @@ export const SpellsManager = ({
                         <h5 className="font-semibold">{spell.name}</h5>
                         <p className="text-sm text-muted-foreground">
                           {spellLevelDisplay(spell.level)}
-                          {spell.school && ` • ${spell.school}`}
+                          {spell.school && ` | ${spell.school}`}
                         </p>
                       </div>
                       <Button
@@ -422,3 +422,4 @@ export const SpellsManager = ({
     </Card>
   );
 };
+

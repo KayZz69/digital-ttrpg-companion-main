@@ -178,7 +178,7 @@ export const CombatParticipant = ({
                 <AlertCircle className="w-3 h-3" />
                 {condition.type}
                 {condition.duration > 0 && ` (${condition.duration})`}
-                {condition.duration === -1 && " (∞)"}
+                {condition.duration === -1 && " (inf)"}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -311,3 +311,4 @@ export const CombatParticipant = ({
     </Card>
   );
 };
+

@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Trash2, Eye, Edit, Search, Dices } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { readCharacters, writeCharacters } from "@/lib/storage";
 
 /**
  * Character List page component.
@@ -42,11 +43,7 @@ export const CharacterList = () => {
 
   /** Loads all characters from localStorage */
   const loadCharacters = () => {
-    const saved = localStorage.getItem("soloquest_characters");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setCharacters(parsed);
-    }
+    setCharacters(readCharacters());
   };
 
   /** Filters characters based on current search query and system filter */
@@ -81,7 +78,7 @@ export const CharacterList = () => {
   const confirmDelete = () => {
     if (characterToDelete) {
       const updated = characters.filter((char) => char.id !== characterToDelete);
-      localStorage.setItem("soloquest_characters", JSON.stringify(updated));
+      writeCharacters(updated);
       setCharacters(updated);
       toast({
         title: "Character Deleted",
@@ -196,7 +193,7 @@ export const CharacterList = () => {
                   <CardDescription>
                     {character.system === "dnd5e" && (
                       <>
-                        {character.data.race} {character.data.class} • Level{" "}
+                        {character.data.race} {character.data.class} | Level{" "}
                         {character.data.level}
                       </>
                     )}
@@ -258,3 +255,4 @@ export const CharacterList = () => {
     </div>
   );
 };
+

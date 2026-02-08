@@ -10,6 +10,7 @@ import { DiceRoller } from "./pages/DiceRoller";
 import { SessionJournal } from "./pages/SessionJournal";
 import { CombatTracker } from "./pages/CombatTracker";
 import { NPCLibrary } from "./pages/NPCLibrary";
+import { EditCharacter } from "./pages/EditCharacter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,7 +25,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/characters" element={<CharacterList />} />
           <Route path="/character/:id" element={<CharacterView />} />
-          <Route path="/character/:id/edit" element={<Index editMode />} />
+          <Route path="/character/:id/edit" element={<EditCharacter />} />
           <Route path="/character/:id/journal" element={<SessionJournal />} />
           <Route path="/character/:id/combat" element={<CombatTracker />} />
           <Route path="/dice" element={<DiceRoller />} />

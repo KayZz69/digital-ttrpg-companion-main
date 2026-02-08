@@ -110,7 +110,7 @@ export const ClassSelectionStep = ({ character, setCharacter }: ClassSelectionSt
                       </div>
                     )}
                     <div className="flex items-start gap-2">
-                      <span className="text-xs">⚔️</span>
+                      <span className="text-xs">Wpn</span>
                       <span>{cls.weaponProficiencies.join(", ")}</span>
                     </div>
                   </div>
@@ -142,3 +142,4 @@ export const ClassSelectionStep = ({ character, setCharacter }: ClassSelectionSt
     </div>
   );
 };
+

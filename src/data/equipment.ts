@@ -533,8 +533,8 @@ export const weapons: Weapon[] = [
     category: "martial",
     weaponType: "ranged",
     damage: {
-      dice: "—",
-      type: "—",
+      dice: "",
+      type: "",
     },
     properties: ["Special", "Thrown (5/15)"],
     cost: { quantity: 1, unit: "gp" },
@@ -874,7 +874,7 @@ export const adventuringGear: AdventuringGear[] = [
     weight: 5,
     description: "A Backpack holds up to 30 pounds within 1 cubic foot. It can also serve as a saddlebag.",
   },
-  // Add more gear here... (e.g., ball bearings, bedroll, bell, blanket, etc. – I can expand if needed)
+  // Add more gear here... (e.g., ball bearings, bedroll, bell, blanket, etc.  I can expand if needed)
   // For brevity, I've added a few; the PHB has ~100, so let me know if you want the full list.
 
   // ... (truncated for response length; I can provide the complete list in a follow-up)

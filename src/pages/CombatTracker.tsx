@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { CombatParticipant } from "@/components/CombatParticipant";
 import { ArrowLeft, Plus, Swords, RotateCcw, ChevronRight, Dices, RefreshCw, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { readCharacters, readNPCs, writeCharacters } from "@/lib/storage";
 
 /**
  * Combat Tracker page component.
@@ -45,6 +46,7 @@ export const CombatTracker = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showNPCDialog, setShowNPCDialog] = useState(false);
   const [savedNPCs, setSavedNPCs] = useState<NPC[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
 
   /** Form state for adding a new custom combatant */
   const [newCombatant, setNewCombatant] = useState({
@@ -59,16 +61,15 @@ export const CombatTracker = () => {
   useEffect(() => {
     if (id) {
       loadCharacter(id);
+    } else {
+      setStatus("not_found");
     }
     loadNPCs();
   }, [id]);
 
   /** Loads saved NPCs from localStorage into state */
   const loadNPCs = () => {
-    const saved = localStorage.getItem("soloquest_npcs");
-    if (saved) {
-      setSavedNPCs(JSON.parse(saved));
-    }
+    setSavedNPCs(readNPCs());
   };
 
   /**
@@ -76,13 +77,19 @@ export const CombatTracker = () => {
    * @param characterId - The UUID of the character to load
    */
   const loadCharacter = (characterId: string) => {
-    const saved = localStorage.getItem("soloquest_characters");
-    if (saved) {
-      const characters: Character[] = JSON.parse(saved);
-      const found = characters.find((c) => c.id === characterId);
-      if (found) {
-        setCharacter(found);
-      }
+    const characters: Character[] = readCharacters();
+    const found = characters.find((c) => c.id === characterId);
+    if (found) {
+      setCharacter(found);
+      setStatus("ready");
+    } else {
+      setCharacter(null);
+      setStatus("not_found");
+      toast({
+        title: "Character Not Found",
+        description: "This combat encounter cannot load because the character is missing.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -218,6 +225,7 @@ export const CombatTracker = () => {
   const sortAndSetCombatants = (combatantList: Combatant[]) => {
     const sorted = [...combatantList].sort((a, b) => b.initiative - a.initiative);
     setCombatants(sorted);
+    setCurrentTurn(0);
   };
 
   /**
@@ -247,15 +255,12 @@ export const CombatTracker = () => {
         },
       };
 
-      const saved = localStorage.getItem("soloquest_characters");
-      if (saved) {
-        const characters: Character[] = JSON.parse(saved);
-        const index = characters.findIndex((c) => c.id === character.id);
-        if (index !== -1) {
-          characters[index] = updatedCharacter;
-          localStorage.setItem("soloquest_characters", JSON.stringify(characters));
-          setCharacter(updatedCharacter);
-        }
+      const characters: Character[] = readCharacters();
+      const index = characters.findIndex((c) => c.id === character.id);
+      if (index !== -1) {
+        characters[index] = updatedCharacter;
+        writeCharacters(characters);
+        setCharacter(updatedCharacter);
       }
     }
   };
@@ -297,10 +302,23 @@ export const CombatTracker = () => {
    * @param id - The combatant's UUID to remove
    */
   const removeCombatant = (id: string) => {
+    const removedIndex = combatants.findIndex((c) => c.id === id);
+    if (removedIndex === -1) return;
+
     const filtered = combatants.filter((c) => c.id !== id);
     setCombatants(filtered);
 
-    if (currentTurn >= filtered.length && filtered.length > 0) {
+    if (filtered.length === 0) {
+      setCurrentTurn(0);
+      return;
+    }
+
+    if (removedIndex < currentTurn) {
+      setCurrentTurn(currentTurn - 1);
+      return;
+    }
+
+    if (currentTurn >= filtered.length) {
       setCurrentTurn(0);
     }
   };
@@ -337,12 +355,30 @@ export const CombatTracker = () => {
     });
   };
 
-  const sortedCombatants = [...combatants].sort((a, b) => b.initiative - a.initiative);
-
-  if (!character) {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (status === "not_found" || !character) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Combat Tracker Unavailable</CardTitle>
+            <CardDescription>
+              The selected character could not be loaded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate("/characters")} className="w-full">
+              Back to Characters
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -378,7 +414,7 @@ export const CombatTracker = () => {
                 <Swords className="w-6 h-6 text-primary" />
                 <div>
                   <CardTitle className="text-2xl">Combat Tracker</CardTitle>
-                  <CardDescription>Round {round} • {combatants.length} combatants</CardDescription>
+                  <CardDescription>Round {round} | {combatants.length} combatants</CardDescription>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -549,7 +585,7 @@ export const CombatTracker = () => {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {sortedCombatants.map((combatant, index) => (
+            {combatants.map((combatant, index) => (
               <CombatParticipant
                 key={combatant.id}
                 combatant={combatant}
@@ -565,3 +601,4 @@ export const CombatTracker = () => {
     </div>
   );
 };
+

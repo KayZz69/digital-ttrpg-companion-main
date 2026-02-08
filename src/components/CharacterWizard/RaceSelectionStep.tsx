@@ -42,7 +42,7 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
                   <div>
                     <CardTitle className="text-xl">{race.name}</CardTitle>
                     <CardDescription className="mt-1">
-                      {race.size} • {race.speed} ft speed
+                      {race.size} | {race.speed} ft speed
                     </CardDescription>
                   </div>
                   {isSelected && (
@@ -94,3 +94,4 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
     </div>
   );
 };
+

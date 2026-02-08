@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { readCharacters, writeCharacters } from "@/lib/storage";
 import { BasicInfoStep } from "./BasicInfoStep";
 import { RaceSelectionStep } from "./RaceSelectionStep";
 import { ClassSelectionStep } from "./ClassSelectionStep";
@@ -157,10 +158,9 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
       } as DnD5eCharacter,
     };
 
-    const saved = localStorage.getItem("soloquest_characters");
-    const characters: Character[] = saved ? JSON.parse(saved) : [];
+    const characters: Character[] = readCharacters();
     characters.push(newCharacter);
-    localStorage.setItem("soloquest_characters", JSON.stringify(characters));
+    writeCharacters(characters);
 
     toast({
       title: "Character Created!",

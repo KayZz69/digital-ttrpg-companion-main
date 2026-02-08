@@ -1093,7 +1093,7 @@ export const spells: Spell[] = [
     duration: "1 hour",
     concentration: false,
     ritual: false,
-    description: "The target’s speed increases by 10 feet until the spell ends.",
+    description: "The targets speed increases by 10 feet until the spell ends.",
     higherLevels: "When cast using a spell slot of 2nd level or higher, the increase is 20 feet per slot level above 1st.",
     classes: ["Bard", "Druid", "Ranger", "Sorcerer", "Warlock", "Wizard"],
   },
@@ -2210,7 +2210,7 @@ export const spells: Spell[] = [
     components: {
       verbal: true,
       somatic: true,
-      material: { required: false, components: "an adder’s tongue and a sprig of nightshade" },
+      material: { required: false, components: "an adders tongue and a sprig of nightshade" },
     },
     duration: "Concentration, up to 1 minute",
     concentration: true,
@@ -2381,7 +2381,7 @@ export const spells: Spell[] = [
     components: {
       verbal: true,
       somatic: true,
-      material: { required: false, components: "a snake’s tongue and either a bit of honeycomb or a drop of sweet oil" },
+      material: { required: false, components: "a snakes tongue and either a bit of honeycomb or a drop of sweet oil" },
     },
     duration: "Concentration, up to 8 hours",
     concentration: true,

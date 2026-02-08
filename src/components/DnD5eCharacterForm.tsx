@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dices, Save, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { readCharacters, writeCharacters } from "@/lib/storage";
 
 interface DnD5eCharacterFormProps {
   onBack: () => void;
@@ -39,20 +40,17 @@ export const DnD5eCharacterForm = ({ onBack, editMode = false }: DnD5eCharacterF
   }, [editMode, id]);
 
   const loadCharacter = (characterId: string) => {
-    const saved = localStorage.getItem("soloquest_characters");
-    if (saved) {
-      const characters: Character[] = JSON.parse(saved);
-      const found = characters.find((c) => c.id === characterId);
-      if (found && found.system === "dnd5e") {
-        setCharacter(found.data as DnD5eCharacter);
-      } else {
-        toast({
-          title: "Character Not Found",
-          description: "The character you're trying to edit doesn't exist.",
-          variant: "destructive",
-        });
-        navigate("/characters");
-      }
+    const characters: Character[] = readCharacters();
+    const found = characters.find((c) => c.id === characterId);
+    if (found && found.system === "dnd5e") {
+      setCharacter(found.data as DnD5eCharacter);
+    } else {
+      toast({
+        title: "Character Not Found",
+        description: "The character you're trying to edit doesn't exist.",
+        variant: "destructive",
+      });
+      navigate("/characters");
     }
   };
 
@@ -133,8 +131,7 @@ export const DnD5eCharacterForm = ({ onBack, editMode = false }: DnD5eCharacterF
       return;
     }
 
-    const saved = localStorage.getItem("soloquest_characters");
-    const characters: Character[] = saved ? JSON.parse(saved) : [];
+    const characters: Character[] = readCharacters();
 
     if (editMode && id) {
       // Update existing character
@@ -145,7 +142,7 @@ export const DnD5eCharacterForm = ({ onBack, editMode = false }: DnD5eCharacterF
           updatedAt: new Date().toISOString(),
           data: character as DnD5eCharacter,
         };
-        localStorage.setItem("soloquest_characters", JSON.stringify(characters));
+        writeCharacters(characters);
         toast({
           title: "Character Updated!",
           description: `${character.name} has been updated.`,
@@ -200,7 +197,7 @@ export const DnD5eCharacterForm = ({ onBack, editMode = false }: DnD5eCharacterF
         updatedAt: new Date().toISOString(),
         data: completeCharacter,
       });
-      localStorage.setItem("soloquest_characters", JSON.stringify(characters));
+      writeCharacters(characters);
 
       toast({
         title: "Character Saved!",

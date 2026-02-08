@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, Trash2, Edit, Users, Swords } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { readNPCs, writeNPCs } from "@/lib/storage";
 
 /**
  * NPC Library page component.
@@ -51,14 +52,11 @@ export const NPCLibrary = () => {
   }, []);
 
   const loadNPCs = () => {
-    const saved = localStorage.getItem("soloquest_npcs");
-    if (saved) {
-      setNpcs(JSON.parse(saved));
-    }
+    setNpcs(readNPCs());
   };
 
   const saveNPCs = (updatedNPCs: NPC[]) => {
-    localStorage.setItem("soloquest_npcs", JSON.stringify(updatedNPCs));
+    writeNPCs(updatedNPCs);
     setNpcs(updatedNPCs);
   };
 

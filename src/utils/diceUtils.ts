@@ -82,7 +82,7 @@ export const createDiceRoll = (
 
 /**
  * Formats a dice roll result into a human-readable string.
- * Produces output like "2d6+3: [4, 5] = 12" or "1d20 (Advantage): [8, 15] → 15+2 = 17".
+ * Produces output like "2d6+3: [4, 5] = 12" or "1d20 (Advantage): [8, 15] -> 15+2 = 17".
  *
  * @param roll - The DiceRoll object to format
  * @returns A formatted string showing the roll notation, individual results, and total
@@ -103,10 +103,11 @@ export const formatRollResult = (roll: DiceRoll): string => {
 
   let resultsText = "";
   if (mode === "advantage" || mode === "disadvantage") {
-    resultsText = `[${results.join(", ")}] → ${mode === "advantage" ? Math.max(...results) : Math.min(...results)}`;
+    resultsText = `[${results.join(", ")}] -> ${mode === "advantage" ? Math.max(...results) : Math.min(...results)}`;
   } else {
     resultsText = results.length > 1 ? `[${results.join(", ")}]` : `${results[0]}`;
   }
 
   return `${rollText}: ${resultsText}${modifierText} = ${total}`;
 };
+
