@@ -1,258 +1,267 @@
 import { Race } from "./types";
 
 /**
- * D&D 5e Races (Species)
- * 
- * Populated with data from Player's Handbook (2024) Chapter 2.
- * Includes all 10 core species with traits and languages.
- * Lineages/heritage options are integrated into traits where applicable.
+ * D&D 5e Races (core set used by this app).
+ *
+ * Generated from local 5etools JSON export.
  */
 
 export const races: Race[] = [
   {
-    id: "aasimar",
-    name: "Aasimar",
-    size: "Medium",
-    speed: 30,
-    creatureType: "Humanoid",
-    traits: [
+    "id": "aasimar",
+    "name": "Aasimar",
+    "size": "Medium",
+    "speed": 30,
+    "creatureType": "Humanoid",
+    "traits": [
       {
-        name: "Celestial Resistance",
-        description: "You have Resistance to Necrotic and Radiant damage.",
+        "name": "Celestial Resistance",
+        "description": "You have resistance to necrotic damage and radiant damage."
       },
       {
-        name: "Darkvision",
-        description: "You have Darkvision with a range of 60 feet.",
+        "name": "Darkvision",
+        "description": "You can see in dim light within 60 feet of you as if it were bright light and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray."
       },
       {
-        name: "Healing Hands",
-        description: "As an Action, you touch a creature to restore Hit Points equal to 1 + your level. You can use this trait a number of times equal to your Proficiency Bonus, and you regain expended uses when you finish a Long Rest.",
+        "name": "Healing Hands",
+        "description": "As an action, you can touch a creature and roll a number of d4s equal to your proficiency bonus. The creature regains a number of hit points equal to the total rolled. Once you use this trait, you can't use it again until you finish a long rest."
       },
       {
-        name: "Light Bearer",
-        description: "You know the Light cantrip. Charisma is your spellcasting ability for this spell.",
+        "name": "Light Bearer",
+        "description": "You know the light cantrip. Charisma is your spellcasting ability for it."
       },
       {
-        name: "Radiant Soul",
-        description: "Starting at 3rd level, as a Bonus Action, you shed bright light in a 10-foot radius and dim light for an additional 10 feet for 1 minute. For the duration, once on each of your turns when you hit with a weapon or spell attack, you can deal extra Radiant damage to the target, equal to your level + your Charisma modifier. You can use this trait a number of times equal to your Proficiency Bonus, and you regain expended uses when you finish a Long Rest.",
-      },
-    ],
-    languages: ["Common", "Celestial"],
+        "name": "Celestial Revelation",
+        "description": "When you reach 3rd level, choose one of the revelation options below. Thereafter, you can use a bonus action to unleash the celestial energy within yourself, gaining the benefits of that revelation. Your transformation lasts for 1 minute or until you end it as a bonus action. Once you transform using your revelation below, you can't use it again until you finish a long rest. Your eyes briefly become pools of darkness, and ghostly, flightless wings sprout from your back temporarily. Creatures other than your allies within 10 feet of you that can see you must succeed on a Charisma saving throw (8 + your proficiency bonus + your Charisma modifier) or become frightened of you until the end of your next turn. Until the transformation ends, once on each of your turns, you can deal extra necrotic damage to one target when you deal damage to it with an attack or a spell. The extra damage equals your proficiency bonus.; Searing light temporarily radiates from your eyes and mouth. For the duration, you shed bright light in a 10-foot radius and dim light for an additional 10 feet, and at the end of each of your turns, each creature within 10 feet of you takes radiant damage equal to your proficiency bonus. Until the transformation ends, once on each of your turns, you can deal extra radiant damage to one target when you deal damage to it with an attack or a spell. The extra damage equals your proficiency bonus.; Two luminous, spectral wings sprout from your back temporarily. Until the transformation ends, you have a flying speed equal to your walking speed, and once on each of your turns, you can deal extra radiant damage to one target when you deal damage to it with an attack or a spell. The extra damage equals your proficiency bonus."
+      }
+    ]
   },
   {
-    id: "dragonborn",
-    name: "Dragonborn",
-    size: "Medium",
-    speed: 30,
-    creatureType: "Humanoid",
-    traits: [
+    "id": "dragonborn",
+    "name": "Dragonborn",
+    "size": "Medium",
+    "speed": 30,
+    "creatureType": "Humanoid",
+    "traits": [
       {
-        name: "Breath Weapon",
-        description: "As an Action, you exhale destructive energy. Choose a damage type: Acid, Cold, Fire, Lightning, or Poison. The damage type must be one of the damage types associated with your Draconic Ancestry. Each creature in a 15-foot cone must make a saving throw (Dexterity for line, Constitution for cone), taking damage on a failure (2d6 at 1st level, increasing by 1d6 at 6th, 11th, and 16th level). Half damage on success. You can use this trait a number of times equal to your Proficiency Bonus, regaining uses on a Long Rest.",
+        "name": "Draconic Ancestry",
+        "description": "You have draconic ancestry. Choose one type of dragon from the Draconic Ancestry table. Your breath weapon and damage resistance are determined by the dragon type, as shown in the table."
       },
       {
-        name: "Damage Resistance",
-        description: "You have Resistance to the damage type associated with your Draconic Ancestry.",
+        "name": "Breath Weapon",
+        "description": "You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation. When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level. After you use your breath weapon, you can't use it again until you complete a short or long rest."
       },
       {
-        name: "Draconic Ancestry",
-        description: "Choose Black, Blue, Brass, Bronze, Copper, Gold, Green, Red, Silver, or White. Determines Breath Weapon shape (cone or line) and damage type.",
-      },
+        "name": "Damage Resistance",
+        "description": "You have resistance to the damage type associated with your draconic ancestry."
+      }
     ],
-    languages: ["Common", "Draconic"],
+    "abilityScoreIncrease": "Strength +2, Charisma +1",
+    "languages": [
+      "Common",
+      "Draconic"
+    ]
   },
   {
-    id: "dwarf",
-    name: "Dwarf",
-    size: "Medium",
-    speed: 30,
-    creatureType: "Humanoid",
-    traits: [
+    "id": "dwarf",
+    "name": "Dwarf",
+    "size": "Medium",
+    "speed": 25,
+    "creatureType": "Humanoid",
+    "traits": [
       {
-        name: "Darkvision",
-        description: "You have Darkvision with a range of 60 feet.",
+        "name": "Speed",
+        "description": "Your speed is not reduced by wearing heavy armor."
       },
       {
-        name: "Dwarven Resilience",
-        description: "You have Resistance to Poison damage and Advantage on saving throws you make to avoid or end the Poisoned condition.",
+        "name": "Darkvision",
+        "description": "Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray."
       },
       {
-        name: "Dwarven Toughness",
-        description: "Your Hit Point maximum increases by 1, and it increases by 1 again whenever you gain a level.",
+        "name": "Dwarven Resilience",
+        "description": "You have advantage on saving throws against poison, and you have resistance against poison damage."
       },
       {
-        name: "Stonecunning",
-        description: "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You can use this trait a number of times equal to your Proficiency Bonus, regaining expended uses on a Long Rest.",
+        "name": "Dwarven Combat Training",
+        "description": "You have proficiency with the battleaxe, handaxe, light hammer, and warhammer."
       },
+      {
+        "name": "Tool Proficiency",
+        "description": "You gain proficiency with the artisan's tools of your choice: Smith's tools, brewer's supplies, or mason's tools."
+      },
+      {
+        "name": "Stonecunning",
+        "description": "Whenever you make an Intelligence (History) check related to the origin of stonework, you are considered proficient in the History skill and add double your proficiency bonus to the check, instead of your normal proficiency bonus."
+      }
     ],
-    languages: ["Common", "Dwarvish"],
+    "abilityScoreIncrease": "Constitution +2",
+    "languages": [
+      "Common",
+      "Dwarvish"
+    ]
   },
   {
-    id: "elf",
-    name: "Elf",
-    size: "Medium",
-    speed: 30,
-    creatureType: "Humanoid",
-    traits: [
+    "id": "elf",
+    "name": "Elf",
+    "size": "Medium",
+    "speed": 30,
+    "creatureType": "Humanoid",
+    "traits": [
       {
-        name: "Darkvision",
-        description: "You have Darkvision with a range of 60 feet.",
+        "name": "Darkvision",
+        "description": "Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray."
       },
       {
-        name: "Elven Lineage",
-        description: "You are part of a lineage that grants you supernatural abilities. Choose one: High Elf, Wood Elf, or Drow.",
+        "name": "Keen Senses",
+        "description": "You have proficiency in the Perception skill."
       },
       {
-        name: "Fey Ancestry",
-        description: "You have Advantage on saving throws you make to avoid or end the Charmed condition.",
+        "name": "Fey Ancestry",
+        "description": "You have advantage on saving throws against being charmed, and magic can't put you to sleep."
       },
       {
-        name: "Keen Senses",
-        description: "You have proficiency in the Perception skill.",
-      },
-      {
-        name: "Trance",
-        description: "You don't need to sleep, and magic can't put you to sleep. You can finish a Long Rest in 4 hours if you spend it in a meditative trance.",
-      },
+        "name": "Trance",
+        "description": "Elves don't need to sleep. Instead, they meditate deeply, remaining semiconscious, for 4 hours a day. (The Common word for such meditation is \"trance.\") While meditating, you can dream after a fashion; such dreams are actually mental exercises that have become reflexive through years of practice. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep. If you meditate during a long rest, you finish the rest after only 4 hours. You otherwise obey all the rules for a long rest; only the duration is changed."
+      }
     ],
-    languages: ["Common", "Elvish"],
+    "abilityScoreIncrease": "Dexterity +2",
+    "languages": [
+      "Common",
+      "Elvish"
+    ]
   },
   {
-    id: "gnome",
-    name: "Gnome",
-    size: "Small",
-    speed: 25,
-    creatureType: "Humanoid",
-    traits: [
+    "id": "gnome",
+    "name": "Gnome",
+    "size": "Small",
+    "speed": 25,
+    "creatureType": "Humanoid",
+    "traits": [
       {
-        name: "Darkvision",
-        description: "You have Darkvision with a range of 60 feet.",
+        "name": "Darkvision",
+        "description": "Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray."
       },
       {
-        name: "Gnome Cunning",
-        description: "You have Advantage on Intelligence, Wisdom, and Charisma saving throws against magic.",
-      },
-      {
-        name: "Gnomish Lineage",
-        description: "Choose one: Forest Gnome or Rock Gnome.",
-      },
+        "name": "Gnome Cunning",
+        "description": "You have advantage on all Intelligence, Wisdom, and Charisma saving throws against magic."
+      }
     ],
-    languages: ["Common", "Gnomish"],
+    "abilityScoreIncrease": "Intelligence +2",
+    "languages": [
+      "Common",
+      "Gnomish"
+    ]
   },
   {
-    id: "goliath",
-    name: "Goliath",
-    size: "Medium",
-    speed: 30,
-    creatureType: "Humanoid",
-    traits: [
+    "id": "goliath",
+    "name": "Goliath",
+    "size": "Medium",
+    "speed": 30,
+    "creatureType": "Humanoid",
+    "traits": [
       {
-        name: "Large Form",
-        description: "You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift.",
+        "name": "Little Giant",
+        "description": "You have proficiency in the Athletics skill, and you count as one size larger when determining your carrying weight and the weight you can push, drag, or lift."
       },
       {
-        name: "Powerful Build",
-        description: "You count as one size larger for the purpose of determining your carrying capacity.",
+        "name": "Mountain Born",
+        "description": "You have resistance to cold damage. You also naturally acclimate to high altitudes, even if you've never been to one. This includes elevations above 20,000 feet."
       },
       {
-        name: "Stone's Endurance",
-        description: "When you take damage, you can use your Reaction to reduce the damage by 1d12 + your Constitution modifier. You can use this trait a number of times equal to your Proficiency Bonus, regaining uses on a Long Rest.",
-      },
-    ],
-    languages: ["Common", "Giant"],
+        "name": "Stone's Endurance",
+        "description": "You can supernaturally draw on unyielding stone to shrug off harm. When you take damage, you can use your reaction to roll a d12. Add your Constitution modifier to the number rolled and reduce the damage by that total. You can use this trait a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest."
+      }
+    ]
   },
   {
-    id: "halfling",
-    name: "Halfling",
-    size: "Small",
-    speed: 25,
-    creatureType: "Humanoid",
-    traits: [
+    "id": "halfling",
+    "name": "Halfling",
+    "size": "Small",
+    "speed": 25,
+    "creatureType": "Humanoid",
+    "traits": [
       {
-        name: "Brave",
-        description: "You have Advantage on saving throws you make to avoid or end the Frightened condition.",
+        "name": "Lucky",
+        "description": "When you roll a 1 on an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll."
       },
       {
-        name: "Halfling Nimbleness",
-        description: "You can move through the space of any creature larger than you.",
+        "name": "Brave",
+        "description": "You have advantage on saving throws against being frightened."
       },
       {
-        name: "Halfling Lineage",
-        description: "Choose one: Lightfoot or Stout.",
-      },
-      {
-        name: "Lucky",
-        description: "Whenever you roll a 1 on an attack roll, ability check, or saving throw, you can reroll the die.",
-      },
+        "name": "Halfling Nimbleness",
+        "description": "You can move through the space of any creature that is of a size larger than yours."
+      }
     ],
-    languages: ["Common", "Halfling"],
+    "abilityScoreIncrease": "Dexterity +2",
+    "languages": [
+      "Common",
+      "Halfling"
+    ]
   },
   {
-    id: "human",
-    name: "Human",
-    size: "Medium",
-    speed: 30,
-    creatureType: "Humanoid",
-    traits: [
-      {
-        name: "Resourceful",
-        description: "You gain Heroic Inspiration whenever you finish a Long Rest.",
-      },
-      {
-        name: "Skillful",
-        description: "You gain proficiency in one skill of your choice.",
-      },
-      {
-        name: "Versatile",
-        description: "You gain an Origin feat of your choice.",
-      },
-    ],
-    languages: ["Common", "One language of your choice"],
+    "id": "human",
+    "name": "Human",
+    "size": "Medium",
+    "speed": 30,
+    "creatureType": "Humanoid",
+    "traits": [],
+    "languages": [
+      "Common",
+      "1 standard language of your choice"
+    ]
   },
   {
-    id: "orc",
-    name: "Orc",
-    size: "Medium",
-    speed: 30,
-    creatureType: "Humanoid",
-    traits: [
+    "id": "orc",
+    "name": "Orc",
+    "size": "Medium",
+    "speed": 30,
+    "creatureType": "Humanoid",
+    "traits": [
       {
-        name: "Adrenaline Rush",
-        description: "As a Bonus Action, you gain temporary Hit Points equal to your level + your Constitution modifier. You can use this trait a number of times equal to your Proficiency Bonus, regaining uses on a Long Rest.",
+        "name": "Adrenaline Rush",
+        "description": "You can take the Dash action as a bonus action. You can use this trait a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest. Whenever you use this trait, you gain a number of temporary hit points equal to your proficiency bonus."
       },
       {
-        name: "Darkvision",
-        description: "You have Darkvision with a range of 60 feet.",
+        "name": "Darkvision",
+        "description": "You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray."
       },
       {
-        name: "Menacing",
-        description: "You have proficiency in the Intimidation skill.",
+        "name": "Powerful Build",
+        "description": "You count as one size larger when determining your carrying capacity and the weight you can push, drag, or lift."
       },
-    ],
-    languages: ["Common", "Orc"],
+      {
+        "name": "Relentless Endurance",
+        "description": "When you are reduced to 0 hit points but not killed outright, you can drop to 1 hit point instead. Once you use this trait, you can't do so again until you finish a long rest."
+      }
+    ]
   },
   {
-    id: "tiefling",
-    name: "Tiefling",
-    size: "Medium",
-    speed: 30,
-    creatureType: "Humanoid",
-    traits: [
+    "id": "tiefling",
+    "name": "Tiefling",
+    "size": "Medium",
+    "speed": 30,
+    "creatureType": "Humanoid",
+    "traits": [
       {
-        name: "Darkvision",
-        description: "You have Darkvision with a range of 60 feet.",
+        "name": "Darkvision",
+        "description": "Thanks to your infernal heritage, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray."
       },
       {
-        name: "Hellish Resistance",
-        description: "You have Resistance to Fire damage.",
+        "name": "Hellish Resistance",
+        "description": "You have resistance to fire damage."
       },
       {
-        name: "Infernal Legacy",
-        description: "You know the Thaumaturgy cantrip. Once you reach 3rd level, you can cast the Hellish Rebuke spell as a 2nd-level spell once with this trait and regain the ability to do so after a Long Rest. Once you reach 5th level, you can also cast the Darkness spell once with this trait and regain the ability to do so after a Long Rest. Charisma is your spellcasting ability for these spells.",
-      },
+        "name": "Infernal Legacy",
+        "description": "You know the thaumaturgy cantrip. Once you reach 3rd level, you can cast the hellish rebuke spell as a 2nd-level spell with this trait; you regain the ability to cast it when you finish a long rest. Once you reach 5th level, you can also cast the darkness spell once per day with this trait; you regain the ability to cast it when you finish a long rest. Charisma is your spellcasting ability for these spells."
+      }
     ],
-    languages: ["Common", "Infernal"],
-  },
+    "abilityScoreIncrease": "Intelligence +1, Charisma +2",
+    "languages": [
+      "Common",
+      "Infernal"
+    ]
+  }
 ];
 
 export function getRaceById(id: string): Race | undefined {
