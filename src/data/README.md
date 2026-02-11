@@ -34,22 +34,3 @@ Each file contains:
 
 4. **Follow the existing patterns** in each file
 5. **Test as you go** - import and use the data in components
-
-## Copyright Notice
-
-When populating this data:
-- Extract mechanical information (stats, rules, numbers)
-- Keep descriptions brief and functional
-- Do not copy large blocks of creative text verbatim
-- Focus on what's needed for gameplay functionality
-
-The data structure and sample entries are provided to show you the pattern. You are responsible for ensuring your use of the source material complies with applicable laws and licenses.
-
-## Priority Order
-
-Suggest populating in this order:
-1. **Classes** - Focus on the 3-4 most common classes first (Fighter, Wizard, Cleric, Rogue)
-2. **Spells** - Start with cantrips and level 1 spells for your implemented classes
-3. **Equipment** - Add common starting equipment
-4. **Races** - Complete the 10 core races
-5. **Expand** - Add remaining classes, spells, and equipment as needed
