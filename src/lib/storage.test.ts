@@ -135,6 +135,96 @@ describe("storage helpers", () => {
     expect(migrated[0].data.preparedSpells?.[0].sourceSpellId).toBe("acid-splash");
   });
 
+  it("normalizes legacy inventory payloads safely", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.characters,
+      JSON.stringify([
+        {
+          id: "char-legacy-inv",
+          system: "dnd5e",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          data: {
+            name: "Tharn",
+            class: "Fighter",
+            race: "Human",
+            items: [
+              {
+                name: "Rope",
+                quantity: "2",
+                weight: "10",
+                equipped: "false",
+              },
+              "Torch",
+              null,
+            ],
+          },
+        },
+      ])
+    );
+
+    const migrated = readCharacters();
+    expect(migrated[0].data.inventory).toHaveLength(2);
+    expect(migrated[0].data.inventory?.[0]).toMatchObject({
+      name: "Rope",
+      quantity: 2,
+      weight: 10,
+      equipped: false,
+    });
+    expect(migrated[0].data.inventory?.[1]).toMatchObject({
+      name: "Torch",
+      quantity: 1,
+      weight: 0,
+      equipped: false,
+    });
+  });
+
+  it("normalizes legacy spell payloads and component objects safely", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.characters,
+      JSON.stringify([
+        {
+          id: "char-legacy-spell",
+          system: "dnd5e",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          data: {
+            name: "Iri",
+            class: "Wizard",
+            race: "Elf",
+            spells: [
+              {
+                name: "Acid Splash",
+                level: "0",
+                components: { verbal: true, somatic: true, material: false },
+              },
+              {
+                sourceSpellId: "fire-bolt",
+                level: 0,
+              },
+              "invalid",
+            ],
+          },
+        },
+      ])
+    );
+
+    const migrated = readCharacters();
+    expect(migrated[0].data.preparedSpells).toHaveLength(2);
+    expect(migrated[0].data.preparedSpells?.[0]).toMatchObject({
+      sourceSpellId: "acid-splash",
+      name: "Acid Splash",
+      level: 0,
+      components: "V, S",
+    });
+    expect(migrated[0].data.preparedSpells?.[1]).toMatchObject({
+      sourceSpellId: "fire-bolt",
+      name: "Fire Bolt",
+      level: 0,
+    });
+    expect(typeof migrated[0].data.preparedSpells?.[0].id).toBe("string");
+  });
+
   it("writes and reads journal entries", () => {
     const entries: JournalEntry[] = [
       {

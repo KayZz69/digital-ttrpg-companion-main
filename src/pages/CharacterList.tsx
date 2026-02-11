@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Eye, Edit, Search, Dices } from "lucide-react";
+import { Plus, Trash2, Eye, Edit, Search, Dices, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, writeCharacters } from "@/lib/storage";
@@ -117,6 +117,10 @@ export const CharacterList = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/compendium")}>
+              <BookOpen className="w-4 h-4 mr-2" />
+              Compendium
+            </Button>
             <Button variant="outline" onClick={() => navigate("/dice")}>
               <Dices className="w-4 h-4 mr-2" />
               Dice Roller

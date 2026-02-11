@@ -6,8 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles } from "lucide-react";
-import { getClassSpells, isSpellcastingClass, toPreparedSpell } from "@/lib/dndCompendium";
-import { getDefaultSpellSlots, getHighestSlotLevel } from "@/lib/dndRules";
+import { toast } from "@/hooks/use-toast";
+import {
+  getClassSpellcastingAbility,
+  getClassSpells,
+  isSpellcastingClass,
+  toPreparedSpell,
+} from "@/lib/dndCompendium";
+import {
+  getDefaultSpellSlots,
+  getHighestSlotLevel,
+  getSpellSelectionState,
+  validateSpellSelection,
+} from "@/lib/dndRules";
 
 interface SpellSelectionStepProps {
   character: Partial<DnD5eCharacter>;
@@ -36,8 +47,19 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
   }
 
   const slotTemplate = getDefaultSpellSlots(className, level);
-  const highestSlotLevel = Math.max(getHighestSlotLevel(slotTemplate), 1);
+  const highestSlotLevel = getHighestSlotLevel(slotTemplate);
   const classSpells = getClassSpells(className);
+  const spellcastingAbility = getClassSpellcastingAbility(className);
+  const spellcastingScore =
+    spellcastingAbility && character.abilityScores
+      ? character.abilityScores[spellcastingAbility] || 10
+      : 10;
+  const spellSelectionState = getSpellSelectionState(
+    className,
+    level,
+    spellcastingScore,
+    selectedSpells
+  );
 
   const filteredSpells = classSpells.filter((spell) => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -74,6 +96,22 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
       return;
     }
 
+    const validation = validateSpellSelection(
+      className,
+      level,
+      spellcastingScore,
+      selectedSpells,
+      selected.level
+    );
+    if (!validation.canAdd) {
+      toast({
+        title: "Spell Limit Reached",
+        description: validation.reason,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCharacter({
       ...character,
       preparedSpells: [...selectedSpells, toPreparedSpell(selected)],
@@ -92,12 +130,19 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
               </CardTitle>
               <CardDescription>
                 Showing {className} spells up to {levelLabel(highestSlotLevel)} for level {level}
+                {spellSelectionState.maxLeveledSpells !== null &&
+                  ` | ${spellSelectionState.label}: ${spellSelectionState.currentLeveledSpells}/${spellSelectionState.maxLeveledSpells} leveled`}
               </CardDescription>
             </div>
             <Badge variant="secondary">{selectedSpells.length} selected</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {spellSelectionState.isOverLimit && (
+            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {spellSelectionState.label} are over the class limit. Remove leveled spells to continue.
+            </p>
+          )}
           <Input
             placeholder="Search spells by name or school..."
             value={query}
@@ -108,15 +153,23 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
             <div className="space-y-2">
               {filteredSpells.map((spell) => {
                 const checked = selectedIds.has(spell.id);
+                const disabledByLimit =
+                  !checked &&
+                  spell.level > 0 &&
+                  spellSelectionState.maxLeveledSpells !== null &&
+                  spellSelectionState.currentLeveledSpells >= spellSelectionState.maxLeveledSpells;
                 return (
                   <label
                     key={spell.id}
                     htmlFor={`spell-${spell.id}`}
-                    className="flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors hover:bg-muted/40"
+                    className={`flex items-start gap-3 rounded-md border p-3 transition-colors hover:bg-muted/40 ${
+                      disabledByLimit ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                    }`}
                   >
                     <Checkbox
                       id={`spell-${spell.id}`}
                       checked={checked}
+                      disabled={disabledByLimit}
                       onCheckedChange={() => toggleSpell(spell.id)}
                     />
                     <div className="min-w-0 flex-1">

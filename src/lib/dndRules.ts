@@ -71,6 +71,142 @@ const WARLOCK_PACT_SLOTS: Array<{ spellLevel: number; slots: number }> = [
 ];
 
 const HALF_CASTER_CLASSES = new Set(["paladin", "ranger"]);
+const PREPARED_SPELLCASTERS = new Set(["cleric", "druid", "paladin", "ranger", "wizard"]);
+const KNOWN_SPELL_LIMITS: Record<string, number[]> = {
+  bard: [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 15, 16, 17, 18, 19, 20, 22, 22],
+  sorcerer: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15],
+  warlock: [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
+};
+
+export type SpellcastingRuleMode = "none" | "prepared" | "known";
+
+export interface SpellSelectionState {
+  mode: SpellcastingRuleMode;
+  label: "Prepared spells" | "Known spells" | "Spells";
+  maxLeveledSpells: number | null;
+  currentLeveledSpells: number;
+  remainingLeveledSpells: number | null;
+  isAtLimit: boolean;
+  isOverLimit: boolean;
+}
+
+export interface SpellSelectionValidation extends SpellSelectionState {
+  canAdd: boolean;
+  reason?: string;
+}
+
+const clampLevel = (level: number): number => Math.min(Math.max(level, 1), 20);
+
+const toRuleLabel = (mode: SpellcastingRuleMode): SpellSelectionState["label"] => {
+  if (mode === "known") {
+    return "Known spells";
+  }
+  if (mode === "prepared") {
+    return "Prepared spells";
+  }
+  return "Spells";
+};
+
+const getPreparedLeveledLimit = (
+  className: string,
+  level: number,
+  abilityModifier: number
+): number => {
+  const lower = className.toLowerCase();
+  if (lower === "paladin" || lower === "ranger") {
+    return Math.max(1, Math.floor(level / 2) + abilityModifier);
+  }
+  return Math.max(1, level + abilityModifier);
+};
+
+export function getSpellcastingRuleMode(className: string): SpellcastingRuleMode {
+  const lower = className.trim().toLowerCase();
+  if (!lower || !isSpellcastingClass(className)) {
+    return "none";
+  }
+  if (KNOWN_SPELL_LIMITS[lower]) {
+    return "known";
+  }
+  if (PREPARED_SPELLCASTERS.has(lower)) {
+    return "prepared";
+  }
+  return "prepared";
+}
+
+export function getSpellSelectionState(
+  className: string,
+  level: number,
+  abilityScore: number,
+  spells: Array<{ level: number }>
+): SpellSelectionState {
+  const mode = getSpellcastingRuleMode(className);
+  const normalizedLevel = clampLevel(level);
+  const currentLeveledSpells = spells.filter((spell) => spell.level > 0).length;
+  const label = toRuleLabel(mode);
+
+  let maxLeveledSpells: number | null = null;
+  if (mode === "known") {
+    const counts = KNOWN_SPELL_LIMITS[className.trim().toLowerCase()] || [];
+    maxLeveledSpells = counts[normalizedLevel - 1] ?? null;
+  } else if (mode === "prepared") {
+    maxLeveledSpells = getPreparedLeveledLimit(
+      className,
+      normalizedLevel,
+      getAbilityModifier(abilityScore)
+    );
+  }
+
+  const remainingLeveledSpells =
+    maxLeveledSpells === null ? null : Math.max(maxLeveledSpells - currentLeveledSpells, 0);
+
+  return {
+    mode,
+    label,
+    maxLeveledSpells,
+    currentLeveledSpells,
+    remainingLeveledSpells,
+    isAtLimit: maxLeveledSpells !== null && currentLeveledSpells >= maxLeveledSpells,
+    isOverLimit: maxLeveledSpells !== null && currentLeveledSpells > maxLeveledSpells,
+  };
+}
+
+export function validateSpellSelection(
+  className: string,
+  level: number,
+  abilityScore: number,
+  spells: Array<{ level: number }>,
+  candidateSpellLevel: number
+): SpellSelectionValidation {
+  const state = getSpellSelectionState(className, level, abilityScore, spells);
+
+  if (state.mode === "none") {
+    return {
+      ...state,
+      canAdd: false,
+      reason: "This class does not use spellcasting.",
+    };
+  }
+
+  if (candidateSpellLevel <= 0 || state.maxLeveledSpells === null) {
+    return {
+      ...state,
+      canAdd: true,
+    };
+  }
+
+  if (state.currentLeveledSpells >= state.maxLeveledSpells) {
+    return {
+      ...state,
+      canAdd: false,
+      reason: `${state.label} limit reached (${state.currentLeveledSpells}/${state.maxLeveledSpells} leveled spells).`,
+    };
+  }
+
+  return {
+    ...state,
+    canAdd: true,
+  };
+}
 
 export function getAbilityModifier(score: number): number {
   return Math.floor((score - 10) / 2);

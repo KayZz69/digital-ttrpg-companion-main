@@ -19,6 +19,7 @@ Digital TTRPG Companion is a React SPA for character management, combat tracking
 - `/character/:id/combat` -> Combat tracker
 - `/dice` -> Dice roller
 - `/npc-library` -> NPC library
+- `/compendium` -> Spells and equipment browser
 
 ## Data Flow
 

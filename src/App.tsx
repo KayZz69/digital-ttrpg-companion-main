@@ -11,6 +11,7 @@ import { SessionJournal } from "./pages/SessionJournal";
 import { CombatTracker } from "./pages/CombatTracker";
 import { NPCLibrary } from "./pages/NPCLibrary";
 import { EditCharacter } from "./pages/EditCharacter";
+import { Compendium } from "./pages/Compendium";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/character/:id/combat" element={<CombatTracker />} />
           <Route path="/dice" element={<DiceRoller />} />
           <Route path="/npc-library" element={<NPCLibrary />} />
+          <Route path="/compendium" element={<Compendium />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -6,6 +6,9 @@ import {
   getHighestSlotLevel,
   getLevelOneHitPoints,
   getProficiencyBonus,
+  getSpellSelectionState,
+  getSpellcastingRuleMode,
+  validateSpellSelection,
 } from "./dndRules";
 
 describe("dndRules helpers", () => {
@@ -45,5 +48,53 @@ describe("dndRules helpers", () => {
     const empty = createEmptySpellSlots();
     expect(empty.level1.max).toBe(0);
     expect(empty.level9.current).toBe(0);
+  });
+
+  it("identifies known and prepared spellcasting classes", () => {
+    expect(getSpellcastingRuleMode("Sorcerer")).toBe("known");
+    expect(getSpellcastingRuleMode("Wizard")).toBe("prepared");
+    expect(getSpellcastingRuleMode("Fighter")).toBe("none");
+  });
+
+  it("tracks leveled spell limits for known and prepared casters", () => {
+    const sorcererState = getSpellSelectionState(
+      "Sorcerer",
+      1,
+      16,
+      [{ level: 1 }, { level: 1 }, { level: 0 }]
+    );
+    expect(sorcererState.maxLeveledSpells).toBe(2);
+    expect(sorcererState.currentLeveledSpells).toBe(2);
+    expect(sorcererState.isAtLimit).toBe(true);
+
+    const wizardState = getSpellSelectionState(
+      "Wizard",
+      3,
+      16,
+      [{ level: 1 }, { level: 2 }, { level: 0 }]
+    );
+    expect(wizardState.maxLeveledSpells).toBe(6);
+    expect(wizardState.remainingLeveledSpells).toBe(4);
+  });
+
+  it("validates additions when class spell limits are reached", () => {
+    const blocked = validateSpellSelection(
+      "Warlock",
+      1,
+      16,
+      [{ level: 1 }, { level: 1 }],
+      1
+    );
+    expect(blocked.canAdd).toBe(false);
+    expect(blocked.reason).toContain("limit reached");
+
+    const cantripAllowed = validateSpellSelection(
+      "Warlock",
+      1,
+      16,
+      [{ level: 1 }, { level: 1 }],
+      0
+    );
+    expect(cantripAllowed.canAdd).toBe(true);
   });
 });

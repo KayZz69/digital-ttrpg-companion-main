@@ -428,6 +428,10 @@ export const CharacterView = () => {
               <Swords className="w-4 h-4 mr-2" />
               Combat
             </Button>
+            <Button variant="outline" onClick={() => navigate(`/compendium?characterId=${id}`)}>
+              <BookOpen className="w-4 h-4 mr-2" />
+              Compendium
+            </Button>
             <Button variant="outline" onClick={() => navigate(`/character/${id}/journal`)}>
               <BookOpen className="w-4 h-4 mr-2" />
               Journal

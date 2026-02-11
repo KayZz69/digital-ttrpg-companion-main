@@ -3,7 +3,7 @@ import { Character } from "@/types/character";
 import { JournalEntry } from "@/types/journal";
 import { NPC } from "@/types/npc";
 import { getAllSpells } from "@/data";
-import { getClassByName, getRaceByName } from "@/lib/dndCompendium";
+import { formatSpellComponents, getClassByName, getRaceByName } from "@/lib/dndCompendium";
 
 export const STORAGE_KEYS = {
   characters: "soloquest_characters",
@@ -37,6 +37,125 @@ const migrateStoredData = <T>(value: T, _version?: number): T => {
 const spellIdByName = new Map(
   getAllSpells().map((spell) => [spell.name.trim().toLowerCase(), spell.id])
 );
+const spellById = new Map(getAllSpells().map((spell) => [spell.id, spell]));
+const VALID_EQUIPMENT_SLOTS = new Set([
+  "mainHand",
+  "offHand",
+  "armor",
+  "helmet",
+  "cloak",
+  "boots",
+  "ring1",
+  "ring2",
+  "amulet",
+  "none",
+]);
+const VALID_ITEM_TYPES = new Set(["weapon", "armor", "adventuringGear"]);
+
+const toTrimmedString = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const toNumber = (value: unknown, fallback: number): number => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return fallback;
+};
+
+const normalizeSpellComponents = (value: unknown): string | undefined => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const components: string[] = [];
+  if (value.verbal === true) {
+    components.push("V");
+  }
+  if (value.somatic === true) {
+    components.push("S");
+  }
+  if (value.material === true) {
+    components.push("M");
+  }
+  if (isRecord(value.material) && typeof value.material.components === "string") {
+    const materialDetails = value.material.components.trim();
+    components.push(materialDetails.length > 0 ? `M (${materialDetails})` : "M");
+  }
+
+  return components.length > 0 ? components.join(", ") : undefined;
+};
+
+const normalizeInventoryItem = (item: unknown, index: number) => {
+  if (!isRecord(item) && typeof item !== "string") {
+    return null;
+  }
+
+  const asRecord = isRecord(item) ? item : ({ name: item } as Record<string, unknown>);
+  const equipmentSlot = toTrimmedString(asRecord.equipmentSlot);
+  const normalizedSlot =
+    equipmentSlot && VALID_EQUIPMENT_SLOTS.has(equipmentSlot) ? equipmentSlot : undefined;
+  const normalizedType = toTrimmedString(asRecord.sourceItemType);
+
+  const equippedFromLegacyField =
+    typeof asRecord.equipped === "boolean"
+      ? asRecord.equipped
+      : normalizedSlot !== undefined && normalizedSlot !== "none";
+
+  return {
+    id: toTrimmedString(asRecord.id) || crypto.randomUUID(),
+    sourceItemId: toTrimmedString(asRecord.sourceItemId),
+    sourceItemType:
+      normalizedType && VALID_ITEM_TYPES.has(normalizedType) ? normalizedType : undefined,
+    name: toTrimmedString(asRecord.name) || `Legacy Item ${index + 1}`,
+    quantity: Math.max(1, Math.floor(toNumber(asRecord.quantity, 1))),
+    weight: Math.max(0, toNumber(asRecord.weight, 0)),
+    description: toTrimmedString(asRecord.description),
+    equipped: equippedFromLegacyField,
+    equipmentSlot: equippedFromLegacyField ? normalizedSlot || "none" : undefined,
+  };
+};
+
+const normalizePreparedSpell = (spell: unknown, index: number) => {
+  if (!isRecord(spell)) {
+    return null;
+  }
+
+  const sourceSpellId =
+    toTrimmedString(spell.sourceSpellId) ||
+    toTrimmedString(spell.spellId) ||
+    (toTrimmedString(spell.name) ? spellIdByName.get(spell.name.trim().toLowerCase()) : undefined);
+  const sourceSpell = sourceSpellId ? spellById.get(sourceSpellId) : undefined;
+
+  return {
+    id: toTrimmedString(spell.id) || crypto.randomUUID(),
+    sourceSpellId,
+    name: toTrimmedString(spell.name) || sourceSpell?.name || `Legacy Spell ${index + 1}`,
+    level: Math.max(0, Math.min(9, Math.floor(toNumber(spell.level, sourceSpell?.level || 0)))),
+    school: toTrimmedString(spell.school) || sourceSpell?.school || "",
+    castingTime: toTrimmedString(spell.castingTime) || sourceSpell?.castingTime || "",
+    range: toTrimmedString(spell.range) || sourceSpell?.range || "",
+    components:
+      normalizeSpellComponents(spell.components) ||
+      (sourceSpell ? formatSpellComponents(sourceSpell.components) : ""),
+    duration: toTrimmedString(spell.duration) || sourceSpell?.duration || "",
+    description: toTrimmedString(spell.description) || sourceSpell?.description || "",
+  };
+};
 
 const migrateCharacterRecord = (character: Character): Character => {
   if (character.system !== "dnd5e" || !isRecord(character.data)) {
@@ -47,25 +166,23 @@ const migrateCharacterRecord = (character: Character): Character => {
   const className = typeof data.class === "string" ? data.class : "";
   const raceName = typeof data.race === "string" ? data.race : "";
 
-  const inventory = Array.isArray(data.inventory) ? data.inventory : [];
-  const preparedSpells = Array.isArray(data.preparedSpells)
-    ? data.preparedSpells.map((spell) => {
-        if (!isRecord(spell)) {
-          return spell;
-        }
+  const rawInventory = Array.isArray(data.inventory)
+    ? data.inventory
+    : Array.isArray(data.items)
+      ? data.items
+      : [];
+  const inventory = rawInventory
+    .map((item, index) => normalizeInventoryItem(item, index))
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
-        if (typeof spell.sourceSpellId === "string") {
-          return spell;
-        }
-
-        if (typeof spell.name !== "string") {
-          return spell;
-        }
-
-        const sourceSpellId = spellIdByName.get(spell.name.trim().toLowerCase());
-        return sourceSpellId ? { ...spell, sourceSpellId } : spell;
-      })
-    : [];
+  const rawPreparedSpells = Array.isArray(data.preparedSpells)
+    ? data.preparedSpells
+    : Array.isArray(data.spells)
+      ? data.spells
+      : [];
+  const preparedSpells = rawPreparedSpells
+    .map((spell, index) => normalizePreparedSpell(spell, index))
+    .filter((spell): spell is NonNullable<typeof spell> => spell !== null);
 
   const migratedData = {
     ...data,

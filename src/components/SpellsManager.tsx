@@ -25,7 +25,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { getClassSpells, toPreparedSpell } from "@/lib/dndCompendium";
-import { formatModifier, getAbilityModifier, getHighestSlotLevel, getProficiencyBonus } from "@/lib/dndRules";
+import {
+  formatModifier,
+  getAbilityModifier,
+  getHighestSlotLevel,
+  getProficiencyBonus,
+  getSpellSelectionState,
+  validateSpellSelection,
+} from "@/lib/dndRules";
 
 interface SpellsManagerProps {
   spellSlots: SpellSlots;
@@ -67,6 +74,16 @@ export const SpellsManager = ({
   const proficiencyBonus = getProficiencyBonus(level);
   const spellSaveDC = 8 + proficiencyBonus + spellcastingMod;
   const spellAttackBonus = proficiencyBonus + spellcastingMod;
+  const spellSelectionState = getSpellSelectionState(
+    characterClass || "",
+    level,
+    abilityScores[spellcastingAbility],
+    preparedSpells
+  );
+  const isLeveledCapReached =
+    spellSelectionState.maxLeveledSpells !== null &&
+    spellSelectionState.currentLeveledSpells >= spellSelectionState.maxLeveledSpells;
+  const spellListLabel = spellSelectionState.mode === "known" ? "Known Spells" : "Prepared Spells";
 
   const maxSlotLevel = getHighestSlotLevel(spellSlots);
 
@@ -80,7 +97,7 @@ export const SpellsManager = ({
   const filteredClassSpells = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return classSpells.filter((spell) => {
-      const levelAllowed = spell.level === 0 || spell.level <= Math.max(maxSlotLevel, 1);
+      const levelAllowed = spell.level === 0 || spell.level <= maxSlotLevel;
       if (!levelAllowed) {
         return false;
       }
@@ -134,6 +151,21 @@ export const SpellsManager = ({
       });
       return;
     }
+    const validation = validateSpellSelection(
+      characterClass || "",
+      level,
+      abilityScores[spellcastingAbility],
+      preparedSpells,
+      newSpell.level
+    );
+    if (!validation.canAdd) {
+      toast({
+        title: "Spell Limit Reached",
+        description: validation.reason,
+        variant: "destructive",
+      });
+      return;
+    }
 
     const spell: PreparedSpell = {
       ...newSpell,
@@ -156,7 +188,7 @@ export const SpellsManager = ({
     });
     toast({
       title: "Spell Added",
-      description: `${spell.name} has been added to prepared spells.`,
+      description: `${spell.name} has been added to ${spellSelectionState.label.toLowerCase()}.`,
     });
   };
 
@@ -169,7 +201,22 @@ export const SpellsManager = ({
     if (preparedSpells.some((spell) => spell.sourceSpellId === selected.id)) {
       toast({
         title: "Already Added",
-        description: `${selected.name} is already in prepared spells.`,
+        description: `${selected.name} is already in ${spellSelectionState.label.toLowerCase()}.`,
+      });
+      return;
+    }
+    const validation = validateSpellSelection(
+      characterClass || "",
+      level,
+      abilityScores[spellcastingAbility],
+      preparedSpells,
+      selected.level
+    );
+    if (!validation.canAdd) {
+      toast({
+        title: "Spell Limit Reached",
+        description: validation.reason,
+        variant: "destructive",
       });
       return;
     }
@@ -187,7 +234,7 @@ export const SpellsManager = ({
     if (spell) {
       toast({
         title: "Spell Removed",
-        description: `${spell.name} has been removed from prepared spells.`,
+        description: `${spell.name} has been removed from ${spellSelectionState.label.toLowerCase()}.`,
       });
     }
   };
@@ -226,9 +273,22 @@ export const SpellsManager = ({
             <span className="text-muted-foreground">Spell Attack:</span>
             <span className="ml-2 font-medium">{formatModifier(spellAttackBonus)}</span>
           </div>
+          {spellSelectionState.maxLeveledSpells !== null && (
+            <div>
+              <span className="text-muted-foreground">{spellSelectionState.label}:</span>
+              <span className="ml-2 font-medium">
+                {spellSelectionState.currentLeveledSpells}/{spellSelectionState.maxLeveledSpells} leveled
+              </span>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {spellSelectionState.isOverLimit && (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {spellSelectionState.label} are currently over the class limit. Remove leveled spells to resolve this.
+          </p>
+        )}
         <div>
           <h4 className="mb-3 font-semibold">Spell Slots</h4>
           <div className="grid grid-cols-3 gap-3">
@@ -320,7 +380,10 @@ export const SpellsManager = ({
                       size="sm"
                       variant="outline"
                       onClick={() => addCompendiumSpell(spell.id)}
-                      disabled={preparedSpells.some((prepared) => prepared.sourceSpellId === spell.id)}
+                      disabled={
+                        preparedSpells.some((prepared) => prepared.sourceSpellId === spell.id) ||
+                        (spell.level > 0 && isLeveledCapReached)
+                      }
                     >
                       <Plus className="mr-1 h-3 w-3" />
                       Add
@@ -339,7 +402,7 @@ export const SpellsManager = ({
 
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h4 className="font-semibold">Prepared Spells</h4>
+            <h4 className="font-semibold">{spellListLabel}</h4>
             <Dialog open={isAddSpellOpen} onOpenChange={setIsAddSpellOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline">
@@ -349,7 +412,7 @@ export const SpellsManager = ({
               </DialogTrigger>
               <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Add Custom Prepared Spell</DialogTitle>
+                  <DialogTitle>Add Custom {spellListLabel.slice(0, -1)}</DialogTitle>
                   <DialogDescription>
                     Add a homebrew or custom spell not present in the compendium.
                   </DialogDescription>
@@ -470,7 +533,7 @@ export const SpellsManager = ({
 
           {preparedSpells.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              No prepared spells yet. Add from compendium or create a custom one.
+              No {spellSelectionState.mode === "known" ? "known" : "prepared"} spells yet. Add from compendium or create a custom one.
             </p>
           ) : (
             <div className="space-y-3">
