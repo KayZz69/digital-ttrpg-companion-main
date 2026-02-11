@@ -1,31 +1,71 @@
-import { useState } from "react";
+import { type ComponentType, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { DnD5eCharacter, DnD5eAbilityScores, Character } from "@/types/character";
+import { DnD5eCharacter, Character } from "@/types/character";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, writeCharacters } from "@/lib/storage";
+import {
+  getClassByName,
+  getClassSavingThrowProficiencies,
+  getClassSpellcastingAbility,
+  getRaceByName,
+  isSpellcastingClass,
+} from "@/lib/dndCompendium";
+import { getDefaultSpellSlots, getLevelOneHitPoints } from "@/lib/dndRules";
 import { BasicInfoStep } from "./BasicInfoStep";
 import { RaceSelectionStep } from "./RaceSelectionStep";
 import { ClassSelectionStep } from "./ClassSelectionStep";
 import { AbilityScoresStep } from "./AbilityScoresStep";
 import { SkillsStep } from "./SkillsStep";
 import { SavingThrowsStep } from "./SavingThrowsStep";
+import { SpellSelectionStep } from "./SpellSelectionStep";
+import { StartingEquipmentStep } from "./StartingEquipmentStep";
 import { ReviewStep } from "./ReviewStep";
 
 interface CharacterWizardProps {
   onBack: () => void;
 }
 
-const STEPS = [
-  { id: 1, name: "Basic Info", component: BasicInfoStep },
-  { id: 2, name: "Race", component: RaceSelectionStep },
-  { id: 3, name: "Class", component: ClassSelectionStep },
-  { id: 4, name: "Abilities", component: AbilityScoresStep },
-  { id: 5, name: "Skills", component: SkillsStep },
-  { id: 6, name: "Saves", component: SavingThrowsStep },
-  { id: 7, name: "Review", component: ReviewStep },
+type WizardStepKey =
+  | "basic"
+  | "race"
+  | "class"
+  | "abilities"
+  | "skills"
+  | "saves"
+  | "spells"
+  | "equipment"
+  | "review";
+
+interface WizardStepProps {
+  character: Partial<DnD5eCharacter>;
+  setCharacter: (character: Partial<DnD5eCharacter>) => void;
+}
+
+interface WizardStepDefinition {
+  key: WizardStepKey;
+  name: string;
+  component: ComponentType<WizardStepProps>;
+  showWhen?: (character: Partial<DnD5eCharacter>) => boolean;
+}
+
+const ALL_STEPS: WizardStepDefinition[] = [
+  { key: "basic", name: "Basic Info", component: BasicInfoStep },
+  { key: "race", name: "Race", component: RaceSelectionStep },
+  { key: "class", name: "Class", component: ClassSelectionStep },
+  { key: "abilities", name: "Abilities", component: AbilityScoresStep },
+  { key: "skills", name: "Skills", component: SkillsStep },
+  { key: "saves", name: "Saves", component: SavingThrowsStep },
+  {
+    key: "spells",
+    name: "Spells",
+    component: SpellSelectionStep,
+    showWhen: (character) => isSpellcastingClass(character.class || ""),
+  },
+  { key: "equipment", name: "Equipment", component: StartingEquipmentStep },
+  { key: "review", name: "Review", component: ReviewStep },
 ];
 
 export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
@@ -49,24 +89,38 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
     inventory: [],
   });
 
-  const progress = (currentStep / STEPS.length) * 100;
-  const CurrentStepComponent = STEPS[currentStep - 1].component;
+  const steps = ALL_STEPS.filter((step) =>
+    step.showWhen ? step.showWhen(character) : true
+  );
+
+  useEffect(() => {
+    if (currentStep > steps.length) {
+      setCurrentStep(steps.length);
+    }
+  }, [currentStep, steps.length]);
+
+  const currentStepDefinition = steps[currentStep - 1];
+  const progress = (currentStep / steps.length) * 100;
+  const CurrentStepComponent = currentStepDefinition?.component;
 
   const canProceed = () => {
-    switch (currentStep) {
-      case 1:
+    if (!currentStepDefinition) {
+      return false;
+    }
+
+    switch (currentStepDefinition.key) {
+      case "basic":
         return character.name && character.name.trim().length > 0;
-      case 2:
+      case "race":
         return character.race && character.race.length > 0;
-      case 3:
+      case "class":
         return character.class && character.class.length > 0;
-      case 4:
-        return true; // Abilities always have default values
-      case 5:
-        return true; // Skills are optional
-      case 6:
-        return true; // Saving throws are optional
-      case 7:
+      case "abilities":
+      case "skills":
+      case "saves":
+      case "spells":
+      case "equipment":
+      case "review":
         return true;
       default:
         return false;
@@ -83,7 +137,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
       return;
     }
 
-    if (currentStep < STEPS.length) {
+    if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
     } else {
       handleComplete();
@@ -108,36 +162,16 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
       return;
     }
 
-    // Calculate HP based on class hit die + Constitution modifier
-    const classHitDice: { [key: string]: number } = {
-      Barbarian: 12,
-      Fighter: 10,
-      Paladin: 10,
-      Ranger: 10,
-      Bard: 8,
-      Cleric: 8,
-      Druid: 8,
-      Monk: 8,
-      Rogue: 8,
-      Warlock: 8,
-      Sorcerer: 6,
-      Wizard: 6,
-    };
-
-    const hitDie = classHitDice[character.class!] || 8;
-    const conModifier = Math.floor(((character.abilityScores?.constitution || 10) - 10) / 2);
-    const maxHP = hitDie + conModifier;
-
-    const spellcastingClasses: { [key: string]: keyof DnD5eAbilityScores } = {
-      Bard: "charisma",
-      Cleric: "wisdom",
-      Druid: "wisdom",
-      Paladin: "charisma",
-      Ranger: "wisdom",
-      Sorcerer: "charisma",
-      Warlock: "charisma",
-      Wizard: "intelligence",
-    };
+    const level = character.level || 1;
+    const constitution = character.abilityScores?.constitution || 10;
+    const maxHP = getLevelOneHitPoints(character.class, constitution);
+    const selectedClass = getClassByName(character.class);
+    const selectedRace = getRaceByName(character.race);
+    const spellcastingAbility = getClassSpellcastingAbility(character.class);
+    const savingThrows =
+      character.savingThrows && Object.keys(character.savingThrows).length > 0
+        ? character.savingThrows
+        : getClassSavingThrowProficiencies(character.class);
 
     const newCharacter: Character = {
       id: crypto.randomUUID(),
@@ -146,15 +180,30 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
       updatedAt: new Date().toISOString(),
       data: {
         ...character,
+        classId: selectedClass?.id,
+        raceId: selectedRace?.id,
+        level,
         hitPoints: {
           current: maxHP,
           max: maxHP,
         },
         hitDice: {
-          current: character.level || 1,
-          max: character.level || 1,
+          current: level,
+          max: level,
         },
-        spellcastingAbility: spellcastingClasses[character.class],
+        savingThrows,
+        inventory: character.inventory || [],
+        ...(spellcastingAbility
+          ? {
+              spellcastingAbility,
+              spellSlots: character.spellSlots || getDefaultSpellSlots(character.class, level),
+              preparedSpells: character.preparedSpells || [],
+            }
+          : {
+              spellcastingAbility: undefined,
+              spellSlots: undefined,
+              preparedSpells: undefined,
+            }),
       } as DnD5eCharacter,
     };
 
@@ -170,6 +219,10 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
     navigate(`/character/${newCharacter.id}`);
   };
 
+  if (!CurrentStepComponent) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto p-6">
@@ -178,20 +231,20 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold text-foreground">Create Character</h1>
             <span className="text-sm text-muted-foreground">
-              Step {currentStep} of {STEPS.length}
+              Step {currentStep} of {steps.length}
             </span>
           </div>
           
           <Progress value={progress} className="h-2" />
           
           <div className="flex justify-between mt-2">
-            {STEPS.map((step) => (
+            {steps.map((step, index) => (
               <div
-                key={step.id}
+                key={step.key}
                 className={`text-xs transition-colors ${
-                  step.id === currentStep
+                  index + 1 === currentStep
                     ? "text-primary font-semibold"
-                    : step.id < currentStep
+                    : index + 1 < currentStep
                     ? "text-muted-foreground"
                     : "text-muted-foreground/50"
                 }`}
@@ -224,8 +277,8 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
             onClick={handleNext}
             disabled={!canProceed()}
           >
-            {currentStep === STEPS.length ? "Create Character" : "Next"}
-            {currentStep < STEPS.length && <ArrowRight className="ml-2 h-4 w-4" />}
+            {currentStep === steps.length ? "Create Character" : "Next"}
+            {currentStep < steps.length && <ArrowRight className="ml-2 h-4 w-4" />}
           </Button>
         </div>
       </div>

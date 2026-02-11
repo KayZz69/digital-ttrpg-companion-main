@@ -3,7 +3,7 @@
  * Handles equipped items, carried items, and encumbrance tracking.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { InventoryItem, EquipmentSlot } from "@/types/character";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Package, Plus, Trash2, Edit, Weight, Shield } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { getAllCompendiumEquipment, toInventoryItem } from "@/lib/dndCompendium";
 
 /**
  * Props for the InventoryManager component.
@@ -58,9 +59,12 @@ const EQUIPMENT_SLOTS: { value: EquipmentSlot; label: string }[] = [
 export const InventoryManager = ({ inventory, carryingCapacity, onUpdateInventory }: InventoryManagerProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCompendiumDialogOpen, setIsCompendiumDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [equipmentQuery, setEquipmentQuery] = useState("");
+  const [equipmentTypeFilter, setEquipmentTypeFilter] = useState<"all" | "weapon" | "armor" | "adventuringGear">("all");
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
@@ -72,6 +76,22 @@ export const InventoryManager = ({ inventory, carryingCapacity, onUpdateInventor
 
   const totalWeight = inventory.reduce((sum, item) => sum + item.weight * item.quantity, 0);
   const isOverEncumbered = totalWeight > carryingCapacity;
+  const compendiumEquipment = useMemo(() => getAllCompendiumEquipment(), []);
+  const filteredCompendiumEquipment = useMemo(() => {
+    const normalizedQuery = equipmentQuery.trim().toLowerCase();
+    return compendiumEquipment.filter((entry) => {
+      if (equipmentTypeFilter !== "all" && entry.type !== equipmentTypeFilter) {
+        return false;
+      }
+      if (!normalizedQuery) {
+        return true;
+      }
+      return (
+        entry.name.toLowerCase().includes(normalizedQuery) ||
+        entry.category.toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [compendiumEquipment, equipmentQuery, equipmentTypeFilter]);
 
   const resetForm = () => {
     setFormData({
@@ -172,6 +192,33 @@ export const InventoryManager = ({ inventory, carryingCapacity, onUpdateInventor
   const openDeleteDialog = (itemId: string) => {
     setItemToDelete(itemId);
     setIsDeleteDialogOpen(true);
+  };
+
+  const addCompendiumItem = (itemId: string) => {
+    const selected = compendiumEquipment.find((entry) => entry.id === itemId);
+    if (!selected) {
+      return;
+    }
+
+    const existingIndex = inventory.findIndex(
+      (item) => item.sourceItemId === selected.id && item.equipped === false
+    );
+
+    if (existingIndex !== -1) {
+      const updatedInventory = [...inventory];
+      updatedInventory[existingIndex] = {
+        ...updatedInventory[existingIndex],
+        quantity: updatedInventory[existingIndex].quantity + 1,
+      };
+      onUpdateInventory(updatedInventory);
+    } else {
+      onUpdateInventory([...inventory, toInventoryItem(selected)]);
+    }
+
+    toast({
+      title: "Item Added",
+      description: `${selected.name} added from compendium.`,
+    });
   };
 
   const toggleEquipped = (itemId: string) => {
@@ -283,10 +330,16 @@ export const InventoryManager = ({ inventory, carryingCapacity, onUpdateInventor
               </CardTitle>
               <CardDescription>{carriedItems.length} items in backpack</CardDescription>
             </div>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Item
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsCompendiumDialogOpen(true)}>
+                <Package className="w-4 h-4 mr-2" />
+                Add from Compendium
+              </Button>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Item
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -437,6 +490,69 @@ export const InventoryManager = ({ inventory, carryingCapacity, onUpdateInventor
               {isEditDialogOpen ? "Update Item" : "Add Item"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Compendium Add Dialog */}
+      <Dialog open={isCompendiumDialogOpen} onOpenChange={setIsCompendiumDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Add Equipment from Compendium</DialogTitle>
+            <DialogDescription>
+              Search and add official equipment, armor, weapons, and gear.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="Search by name or category..."
+              value={equipmentQuery}
+              onChange={(event) => setEquipmentQuery(event.target.value)}
+            />
+            <div className="flex flex-wrap gap-2">
+              {(["all", "weapon", "armor", "adventuringGear"] as const).map((entry) => (
+                <Button
+                  key={entry}
+                  size="sm"
+                  variant={equipmentTypeFilter === entry ? "default" : "outline"}
+                  onClick={() => setEquipmentTypeFilter(entry)}
+                >
+                  {entry === "adventuringGear" ? "Gear" : entry.charAt(0).toUpperCase() + entry.slice(1)}
+                </Button>
+              ))}
+            </div>
+
+            <ScrollArea className="h-[420px] rounded-md border p-3">
+              <div className="space-y-2">
+                {filteredCompendiumEquipment.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-start justify-between gap-3 rounded-md border bg-card p-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{entry.name}</span>
+                        <Badge variant="outline">
+                          {entry.type === "adventuringGear" ? "gear" : entry.type}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {entry.category} | {entry.costLabel} | {entry.weight} lbs
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => addCompendiumItem(entry.id)}>
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                ))}
+                {filteredCompendiumEquipment.length === 0 && (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    No compendium equipment matches the current filter.
+                  </p>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 

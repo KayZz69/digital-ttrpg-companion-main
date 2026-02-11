@@ -9,6 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dices, Save, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, writeCharacters } from "@/lib/storage";
+import { getAllClasses, getAllRaces } from "@/data";
+import {
+  getClassByName,
+  getClassSpellcastingAbility,
+  getRaceByName,
+} from "@/lib/dndCompendium";
+import { getDefaultSpellSlots, getLevelOneHitPoints } from "@/lib/dndRules";
 
 interface DnD5eCharacterFormProps {
   onBack: () => void;
@@ -54,27 +61,8 @@ export const DnD5eCharacterForm = ({ onBack, editMode = false }: DnD5eCharacterF
     }
   };
 
-  const races = [
-    "Human", "Elf", "Dwarf", "Halfling", "Dragonborn", 
-    "Gnome", "Half-Elf", "Half-Orc", "Tiefling"
-  ];
-
-  const classes = [
-    "Barbarian", "Bard", "Cleric", "Druid", "Fighter", 
-    "Monk", "Paladin", "Ranger", "Rogue", "Sorcerer", 
-    "Warlock", "Wizard"
-  ];
-
-  const spellcastingClasses: { [key: string]: keyof DnD5eAbilityScores } = {
-    "Bard": "charisma",
-    "Cleric": "wisdom",
-    "Druid": "wisdom",
-    "Paladin": "charisma",
-    "Ranger": "wisdom",
-    "Sorcerer": "charisma",
-    "Warlock": "charisma",
-    "Wizard": "intelligence",
-  };
+  const races = getAllRaces().map((race) => race.name);
+  const classes = getAllClasses().map((entry) => entry.name);
 
   const abilityNames: (keyof DnD5eAbilityScores)[] = [
     "strength", "dexterity", "constitution", 
@@ -151,19 +139,23 @@ export const DnD5eCharacterForm = ({ onBack, editMode = false }: DnD5eCharacterF
       }
     } else {
       // Create new character
-      // Calculate HP (Constitution modifier + class base)
-      const conMod = Math.floor(((character.abilityScores?.constitution || 10) - 10) / 2);
-      const baseHP = 10; // Simplified, would vary by class
-      const maxHP = baseHP + conMod;
-
-      const isSpellcaster = character.class && character.class in spellcastingClasses;
+      const level = character.level || 1;
+      const maxHP = getLevelOneHitPoints(
+        character.class,
+        character.abilityScores?.constitution || 10
+      );
+      const spellcastingAbility = getClassSpellcastingAbility(character.class);
+      const classRecord = getClassByName(character.class);
+      const raceRecord = getRaceByName(character.race);
       
       const completeCharacter: DnD5eCharacter = {
         id: character.id || crypto.randomUUID(),
+        classId: classRecord?.id,
+        raceId: raceRecord?.id,
         name: character.name,
         race: character.race,
         class: character.class,
-        level: character.level || 1,
+        level,
         abilityScores: character.abilityScores!,
         experiencePoints: character.experiencePoints || 0,
         hitPoints: character.hitPoints || {
@@ -173,19 +165,9 @@ export const DnD5eCharacterForm = ({ onBack, editMode = false }: DnD5eCharacterF
         inventory: character.inventory || [],
         skills: character.skills || {},
         savingThrows: character.savingThrows || {},
-        ...(isSpellcaster && {
-          spellcastingAbility: spellcastingClasses[character.class!],
-          spellSlots: {
-            level1: { current: 2, max: 2 },
-            level2: { current: 0, max: 0 },
-            level3: { current: 0, max: 0 },
-            level4: { current: 0, max: 0 },
-            level5: { current: 0, max: 0 },
-            level6: { current: 0, max: 0 },
-            level7: { current: 0, max: 0 },
-            level8: { current: 0, max: 0 },
-            level9: { current: 0, max: 0 },
-          },
+        ...(spellcastingAbility && {
+          spellcastingAbility,
+          spellSlots: character.spellSlots || getDefaultSpellSlots(character.class, level),
           preparedSpells: [],
         }),
       };
@@ -257,7 +239,16 @@ export const DnD5eCharacterForm = ({ onBack, editMode = false }: DnD5eCharacterF
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="race">Race</Label>
-              <Select value={character.race} onValueChange={(value) => setCharacter({ ...character, race: value })}>
+              <Select
+                value={character.race}
+                onValueChange={(value) =>
+                  setCharacter({
+                    ...character,
+                    race: value,
+                    raceId: getRaceByName(value)?.id,
+                  })
+                }
+              >
                 <SelectTrigger id="race" className="bg-popover">
                   <SelectValue placeholder="Select race" />
                 </SelectTrigger>
@@ -272,7 +263,17 @@ export const DnD5eCharacterForm = ({ onBack, editMode = false }: DnD5eCharacterF
             </div>
             <div className="space-y-2">
               <Label htmlFor="class">Class</Label>
-              <Select value={character.class} onValueChange={(value) => setCharacter({ ...character, class: value })}>
+              <Select
+                value={character.class}
+                onValueChange={(value) =>
+                  setCharacter({
+                    ...character,
+                    class: value,
+                    classId: getClassByName(value)?.id,
+                    spellcastingAbility: getClassSpellcastingAbility(value),
+                  })
+                }
+              >
                 <SelectTrigger id="class" className="bg-popover">
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>

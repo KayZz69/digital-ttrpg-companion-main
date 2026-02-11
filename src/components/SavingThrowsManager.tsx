@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { SavingThrowProficiency, DnD5eAbilityScores } from "@/types/character";
+import { formatModifier, getAbilityModifier, getProficiencyBonus } from "@/lib/dndRules";
 
 interface SavingThrowsManagerProps {
   abilityScores: DnD5eAbilityScores;
@@ -18,22 +19,10 @@ export const SavingThrowsManager = ({
   onUpdateSavingThrows,
   readOnly = false
 }: SavingThrowsManagerProps) => {
-  const getProficiencyBonus = (characterLevel: number): number => {
-    return Math.floor((characterLevel - 1) / 4) + 2;
-  };
-
-  const getAbilityModifier = (score: number): number => {
-    return Math.floor((score - 10) / 2);
-  };
-
   const getSavingThrowModifier = (ability: keyof DnD5eAbilityScores, isProficient: boolean): number => {
     const abilityMod = getAbilityModifier(abilityScores[ability]);
     const profBonus = isProficient ? getProficiencyBonus(level) : 0;
     return abilityMod + profBonus;
-  };
-
-  const formatModifier = (value: number): string => {
-    return value >= 0 ? `+${value}` : `${value}`;
   };
 
   const toggleProficiency = (ability: string) => {

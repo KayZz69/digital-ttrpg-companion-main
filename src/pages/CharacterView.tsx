@@ -19,6 +19,7 @@ import { SpellsManager } from "@/components/SpellsManager";
 import { ArrowLeft, Edit, Dices, Heart, Skull, Plus, Minus, Moon, Sun, X, Circle, CheckCircle2, XCircle, BookOpen, Swords } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, writeCharacters } from "@/lib/storage";
+import { getClassHitDie } from "@/lib/dndCompendium";
 
 /**
  * Character View page component.
@@ -304,8 +305,8 @@ export const CharacterView = () => {
     const hitDice = dndChar.hitDice || { current: dndChar.level, max: dndChar.level };
 
     if (hitDice.current > 0) {
-      // Roll hit dice (simplified: use average)
-      const classHitDie = 8; // Simplified, should be based on class
+      // Roll hit dice (simplified: use average based on class hit die)
+      const classHitDie = getClassHitDie(dndChar.class);
       const healAmount = Math.floor(classHitDie / 2) + 1 + conMod;
       const newHP = Math.min(dndChar.hitPoints.current + healAmount, dndChar.hitPoints.max);
 
@@ -747,6 +748,7 @@ export const CharacterView = () => {
                 level9: { current: 0, max: 0 },
               }}
               preparedSpells={dndCharacter.preparedSpells || []}
+              characterClass={dndCharacter.class}
               spellcastingAbility={dndCharacter.spellcastingAbility}
               abilityScores={dndCharacter.abilityScores}
               level={dndCharacter.level}

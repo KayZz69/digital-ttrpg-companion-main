@@ -59,7 +59,21 @@ describe("storage helpers", () => {
     ] as unknown as Character[];
 
     writeCharacters(characters);
-    expect(readCharacters()).toEqual(characters);
+    const stored = readCharacters();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({
+      id: "char-1",
+      system: "dnd5e",
+      data: {
+        name: "Aria",
+        class: "Wizard",
+        race: "Elf",
+        classId: "wizard",
+        raceId: "elf",
+      },
+    });
+    expect(stored[0].data.inventory).toEqual([]);
+    expect(stored[0].data.preparedSpells).toEqual([]);
   });
 
   it("recovers when characters payload is invalid JSON", () => {
@@ -83,6 +97,42 @@ describe("storage helpers", () => {
     expect(result).toEqual([]);
     expect(localStorage.getItem(STORAGE_KEYS.npcs)).toBe("[]");
     expect(toastMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("migrates character records with compendium IDs and spell source IDs", () => {
+    const characters = [
+      {
+        id: "char-2",
+        system: "dnd5e",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        data: {
+          name: "Meris",
+          class: "Wizard",
+          race: "Elf",
+          preparedSpells: [
+            {
+              id: "prep-1",
+              name: "Acid Splash",
+              level: 0,
+              school: "Conjuration",
+              castingTime: "1 action",
+              range: "60 feet",
+              components: "V, S",
+              duration: "Instantaneous",
+              description: "test",
+            },
+          ],
+        },
+      },
+    ] as unknown as Character[];
+
+    writeCharacters(characters);
+    const migrated = readCharacters();
+
+    expect(migrated[0].data.classId).toBe("wizard");
+    expect(migrated[0].data.raceId).toBe("elf");
+    expect(migrated[0].data.preparedSpells?.[0].sourceSpellId).toBe("acid-splash");
   });
 
   it("writes and reads journal entries", () => {

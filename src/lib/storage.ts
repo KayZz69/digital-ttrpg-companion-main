@@ -2,6 +2,8 @@ import { toast } from "@/hooks/use-toast";
 import { Character } from "@/types/character";
 import { JournalEntry } from "@/types/journal";
 import { NPC } from "@/types/npc";
+import { getAllSpells } from "@/data";
+import { getClassByName, getRaceByName } from "@/lib/dndCompendium";
 
 export const STORAGE_KEYS = {
   characters: "soloquest_characters",
@@ -30,6 +32,54 @@ const isVersionedPayload = <T>(value: unknown): value is VersionedPayload<T> =>
 
 const migrateStoredData = <T>(value: T, _version?: number): T => {
   return value;
+};
+
+const spellIdByName = new Map(
+  getAllSpells().map((spell) => [spell.name.trim().toLowerCase(), spell.id])
+);
+
+const migrateCharacterRecord = (character: Character): Character => {
+  if (character.system !== "dnd5e" || !isRecord(character.data)) {
+    return character;
+  }
+
+  const data = character.data as Record<string, unknown>;
+  const className = typeof data.class === "string" ? data.class : "";
+  const raceName = typeof data.race === "string" ? data.race : "";
+
+  const inventory = Array.isArray(data.inventory) ? data.inventory : [];
+  const preparedSpells = Array.isArray(data.preparedSpells)
+    ? data.preparedSpells.map((spell) => {
+        if (!isRecord(spell)) {
+          return spell;
+        }
+
+        if (typeof spell.sourceSpellId === "string") {
+          return spell;
+        }
+
+        if (typeof spell.name !== "string") {
+          return spell;
+        }
+
+        const sourceSpellId = spellIdByName.get(spell.name.trim().toLowerCase());
+        return sourceSpellId ? { ...spell, sourceSpellId } : spell;
+      })
+    : [];
+
+  const migratedData = {
+    ...data,
+    classId:
+      typeof data.classId === "string" ? data.classId : getClassByName(className)?.id,
+    raceId: typeof data.raceId === "string" ? data.raceId : getRaceByName(raceName)?.id,
+    inventory,
+    preparedSpells,
+  };
+
+  return {
+    ...character,
+    data: migratedData as Character["data"],
+  };
 };
 
 const recoverInvalidPayload = (key: string, raw: string, reason: string) => {
@@ -122,7 +172,7 @@ const isNPC = (value: unknown): value is NPC => {
 };
 
 export const readCharacters = (): Character[] =>
-  safeReadArray(STORAGE_KEYS.characters, isCharacter);
+  safeReadArray(STORAGE_KEYS.characters, isCharacter).map(migrateCharacterRecord);
 
 export const writeCharacters = (characters: Character[]) =>
   safeWriteArray(STORAGE_KEYS.characters, characters);

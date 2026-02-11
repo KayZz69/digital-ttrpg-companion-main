@@ -2,32 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { SkillProficiency, SkillProficiencyLevel, DnD5eAbilityScores } from "@/types/character";
-
-interface Skill {
-  name: string;
-  ability: keyof DnD5eAbilityScores;
-}
-
-const SKILLS: Skill[] = [
-  { name: "Acrobatics", ability: "dexterity" },
-  { name: "Animal Handling", ability: "wisdom" },
-  { name: "Arcana", ability: "intelligence" },
-  { name: "Athletics", ability: "strength" },
-  { name: "Deception", ability: "charisma" },
-  { name: "History", ability: "intelligence" },
-  { name: "Insight", ability: "wisdom" },
-  { name: "Intimidation", ability: "charisma" },
-  { name: "Investigation", ability: "intelligence" },
-  { name: "Medicine", ability: "wisdom" },
-  { name: "Nature", ability: "intelligence" },
-  { name: "Perception", ability: "wisdom" },
-  { name: "Performance", ability: "charisma" },
-  { name: "Persuasion", ability: "charisma" },
-  { name: "Religion", ability: "intelligence" },
-  { name: "Sleight of Hand", ability: "dexterity" },
-  { name: "Stealth", ability: "dexterity" },
-  { name: "Survival", ability: "wisdom" },
-];
+import { SKILL_DEFINITIONS } from "@/lib/dndCompendium";
+import { formatModifier, getAbilityModifier, getProficiencyBonus } from "@/lib/dndRules";
 
 interface SkillsManagerProps {
   abilityScores: DnD5eAbilityScores;
@@ -38,15 +14,10 @@ interface SkillsManagerProps {
 }
 
 export const SkillsManager = ({ abilityScores, level, skills, onUpdateSkills, readOnly = false }: SkillsManagerProps) => {
-  const getProficiencyBonus = (characterLevel: number): number => {
-    return Math.floor((characterLevel - 1) / 4) + 2;
-  };
-
-  const getAbilityModifier = (score: number): number => {
-    return Math.floor((score - 10) / 2);
-  };
-
-  const getSkillModifier = (skill: Skill, proficiencyLevel: SkillProficiencyLevel): number => {
+  const getSkillModifier = (
+    skill: { name: string; ability: keyof DnD5eAbilityScores },
+    proficiencyLevel: SkillProficiencyLevel
+  ): number => {
     const abilityMod = getAbilityModifier(abilityScores[skill.ability]);
     const profBonus = getProficiencyBonus(level);
     
@@ -56,10 +27,6 @@ export const SkillsManager = ({ abilityScores, level, skills, onUpdateSkills, re
       return abilityMod + profBonus;
     }
     return abilityMod;
-  };
-
-  const formatModifier = (value: number): string => {
-    return value >= 0 ? `+${value}` : `${value}`;
   };
 
   const toggleFirstCheckbox = (skillName: string) => {
@@ -103,7 +70,7 @@ export const SkillsManager = ({ abilityScores, level, skills, onUpdateSkills, re
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {SKILLS.map((skill) => {
+          {SKILL_DEFINITIONS.map((skill) => {
             const profLevel = skills[skill.name] || "none";
             const modifier = getSkillModifier(skill, profLevel);
             

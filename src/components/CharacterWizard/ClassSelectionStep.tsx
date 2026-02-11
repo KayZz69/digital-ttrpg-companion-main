@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getAllClasses } from "@/data/classes";
 import { Class } from "@/data/types";
+import { getClassSavingThrowProficiencies } from "@/lib/dndCompendium";
 import { Check, Heart, Shield, Sparkles } from "lucide-react";
 
 interface ClassSelectionStepProps {
@@ -14,29 +15,15 @@ export const ClassSelectionStep = ({ character, setCharacter }: ClassSelectionSt
   const classes = getAllClasses();
 
   const handleClassSelect = (cls: Class) => {
-    // Auto-apply saving throw proficiencies from class
-    const savingThrows: SavingThrowProficiency = {};
-    const abilityMap: Record<string, string> = {
-      "Strength": "strength",
-      "Dexterity": "dexterity",
-      "Constitution": "constitution",
-      "Intelligence": "intelligence",
-      "Wisdom": "wisdom",
-      "Charisma": "charisma"
-    };
-
-    cls.savingThrows.forEach((save: string) => {
-      const abilityKey = abilityMap[save];
-      if (abilityKey) {
-        savingThrows[abilityKey] = true;
-      }
-    });
+    const savingThrows: SavingThrowProficiency = getClassSavingThrowProficiencies(cls.name);
 
     setCharacter({
       ...character,
+      classId: cls.id,
       class: cls.name,
       savingThrows: savingThrows,
-      skills: character.skills || {} // Preserve existing skills
+      spellcastingAbility: cls.spellcasting?.ability,
+      skills: character.skills || {},
     });
   };
 

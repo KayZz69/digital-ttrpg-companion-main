@@ -51,6 +51,10 @@ export type EquipmentSlot =
 export interface InventoryItem {
   /** Unique identifier for this item instance (UUID) */
   id: string;
+  /** Optional reference back to compendium item ID */
+  sourceItemId?: string;
+  /** Optional compendium item type */
+  sourceItemType?: "weapon" | "armor" | "adventuringGear";
   /** Display name of the item */
   name: string;
   /** Number of this item carried */
@@ -110,6 +114,8 @@ export interface SpellSlots {
 export interface PreparedSpell {
   /** Unique identifier for this prepared spell (UUID) */
   id: string;
+  /** Optional reference back to compendium spell ID */
+  sourceSpellId?: string;
   /** Name of the spell */
   name: string;
   /** Spell level (0 for cantrips, 1-9 for leveled spells) */
@@ -167,6 +173,10 @@ export type Condition =
 export interface DnD5eCharacter {
   /** Unique identifier for this character (UUID) */
   id: string;
+  /** Optional canonical class ID from compendium */
+  classId?: string;
+  /** Optional canonical race/species ID from compendium */
+  raceId?: string;
   /** Character's display name */
   name: string;
   /** Character's race (e.g., "Human", "Elf", "Dwarf") */

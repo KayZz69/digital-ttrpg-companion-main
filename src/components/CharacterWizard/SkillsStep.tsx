@@ -4,7 +4,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getAllClasses } from "@/data/classes";
+import { getClassSkillChoices, SKILL_DEFINITIONS } from "@/lib/dndCompendium";
+import { getAbilityModifier, getProficiencyBonus } from "@/lib/dndRules";
 import { Info } from "lucide-react";
 
 interface SkillsStepProps {
@@ -12,58 +13,24 @@ interface SkillsStepProps {
   setCharacter: (character: Partial<DnD5eCharacter>) => void;
 }
 
-interface Skill {
-  name: string;
-  ability: keyof DnD5eAbilityScores;
-}
-
-const SKILLS: Skill[] = [
-  { name: "Acrobatics", ability: "dexterity" },
-  { name: "Animal Handling", ability: "wisdom" },
-  { name: "Arcana", ability: "intelligence" },
-  { name: "Athletics", ability: "strength" },
-  { name: "Deception", ability: "charisma" },
-  { name: "History", ability: "intelligence" },
-  { name: "Insight", ability: "wisdom" },
-  { name: "Intimidation", ability: "charisma" },
-  { name: "Investigation", ability: "intelligence" },
-  { name: "Medicine", ability: "wisdom" },
-  { name: "Nature", ability: "intelligence" },
-  { name: "Perception", ability: "wisdom" },
-  { name: "Performance", ability: "charisma" },
-  { name: "Persuasion", ability: "charisma" },
-  { name: "Religion", ability: "intelligence" },
-  { name: "Sleight of Hand", ability: "dexterity" },
-  { name: "Stealth", ability: "dexterity" },
-  { name: "Survival", ability: "wisdom" },
-];
-
 export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
   const skills = character.skills || {};
   const abilityScores = character.abilityScores!;
   const level = character.level || 1;
   
-  // Get class skill choices
-  const classes = getAllClasses();
-  const selectedClass = classes.find(c => c.name === character.class);
-  const skillChoices = selectedClass?.skillChoices || { choose: 0, from: [] };
+  const skillChoices = getClassSkillChoices(character.class || "");
   const availableSkills = skillChoices.from;
   
   // Count selected skills from available list
-  const selectedCount = SKILLS.filter(skill => {
+  const selectedCount = SKILL_DEFINITIONS.filter(skill => {
     const profLevel = skills[skill.name] || "none";
     return availableSkills.includes(skill.name) && profLevel !== "none";
   }).length;
 
-  const getProficiencyBonus = (characterLevel: number): number => {
-    return Math.floor((characterLevel - 1) / 4) + 2;
-  };
-
-  const getAbilityModifier = (score: number): number => {
-    return Math.floor((score - 10) / 2);
-  };
-
-  const getSkillModifier = (skill: Skill, proficiencyLevel: SkillProficiencyLevel): number => {
+  const getSkillModifier = (
+    skill: { name: string; ability: keyof DnD5eAbilityScores },
+    proficiencyLevel: SkillProficiencyLevel
+  ): number => {
     const abilityMod = getAbilityModifier(abilityScores[skill.ability]);
     const profBonus = getProficiencyBonus(level);
     
@@ -145,7 +112,7 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
             </Alert>
           ) : (
             <div className="space-y-2">
-              {SKILLS.map((skill) => {
+              {SKILL_DEFINITIONS.map((skill) => {
                 const profLevel = skills[skill.name] || "none";
                 const modifier = getSkillModifier(skill, profLevel);
                 const isAvailable = availableSkills.includes(skill.name);

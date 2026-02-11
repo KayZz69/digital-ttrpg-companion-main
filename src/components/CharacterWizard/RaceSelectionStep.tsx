@@ -35,7 +35,7 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
                   ? "border-primary border-2 bg-primary/5"
                   : "border-border hover:border-primary/50"
               }`}
-              onClick={() => setCharacter({ ...character, race: race.name })}
+              onClick={() => setCharacter({ ...character, race: race.name, raceId: race.id })}
             >
               <CardHeader>
                 <div className="flex items-start justify-between">

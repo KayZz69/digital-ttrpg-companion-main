@@ -1,10 +1,11 @@
-import { DnD5eCharacter, SavingThrowProficiency, DnD5eAbilityScores } from "@/types/character";
+import { DnD5eCharacter, DnD5eAbilityScores } from "@/types/character";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getAllClasses } from "@/data/classes";
+import { getClassByName, getClassSavingThrowKeys } from "@/lib/dndCompendium";
+import { formatModifier, getAbilityModifier, getProficiencyBonus } from "@/lib/dndRules";
 import { CheckCircle2 } from "lucide-react";
 
 interface SavingThrowsStepProps {
@@ -12,48 +13,19 @@ interface SavingThrowsStepProps {
   setCharacter: (character: Partial<DnD5eCharacter>) => void;
 }
 
-export const SavingThrowsStep = ({ character, setCharacter }: SavingThrowsStepProps) => {
+export const SavingThrowsStep = ({ character }: SavingThrowsStepProps) => {
   const savingThrows = character.savingThrows || {};
   const abilityScores = character.abilityScores!;
   const level = character.level || 1;
 
-  // Get class saving throws
-  const classes = getAllClasses();
-  const selectedClass = classes.find(c => c.name === character.class);
+  const selectedClass = getClassByName(character.class || "");
   const classSavingThrows = selectedClass?.savingThrows || [];
-  
-  const abilityMap: Record<string, string> = {
-    "Strength": "strength",
-    "Dexterity": "dexterity",
-    "Constitution": "constitution",
-    "Intelligence": "intelligence",
-    "Wisdom": "wisdom",
-    "Charisma": "charisma"
-  };
-  
-  const classSavingThrowKeys = classSavingThrows.map(save => abilityMap[save]).filter(Boolean);
-
-  const getProficiencyBonus = (characterLevel: number): number => {
-    return Math.floor((characterLevel - 1) / 4) + 2;
-  };
-
-  const getAbilityModifier = (score: number): number => {
-    return Math.floor((score - 10) / 2);
-  };
+  const classSavingThrowKeys = getClassSavingThrowKeys(character.class || "");
 
   const getSavingThrowModifier = (ability: keyof DnD5eAbilityScores, isProficient: boolean): number => {
     const abilityMod = getAbilityModifier(abilityScores[ability]);
     const profBonus = isProficient ? getProficiencyBonus(level) : 0;
     return abilityMod + profBonus;
-  };
-
-  const formatModifier = (value: number): string => {
-    return value >= 0 ? `+${value}` : `${value}`;
-  };
-
-  const toggleProficiency = (ability: string) => {
-    // Saving throws are locked - determined by class only
-    return;
   };
 
   const abilities: Array<{ name: keyof DnD5eAbilityScores; label: string; icon: string }> = [
@@ -87,7 +59,8 @@ export const SavingThrowsStep = ({ character, setCharacter }: SavingThrowsStepPr
           
           <div className="space-y-2">
             {abilities.map((ability) => {
-              const isProficient = classSavingThrowKeys.includes(ability.name);
+              const isProficient =
+                classSavingThrowKeys.includes(ability.name) || !!savingThrows[ability.name];
               const modifier = getSavingThrowModifier(ability.name, isProficient);
               
               return (
