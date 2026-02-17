@@ -205,7 +205,7 @@ export const DiceRollerInterface = () => {
           </div>
 
           {/* Roll Button */}
-          <Button onClick={handleRoll} size="lg" className="w-full">
+          <Button onClick={handleRoll} size="lg" className="w-full fantasy-btn-glow">
             <Dices className="w-5 h-5 mr-2" />
             Roll {numberOfDice}
             {diceType}
@@ -273,7 +273,7 @@ export const DiceRollerInterface = () => {
                       <span className="text-xs text-muted-foreground">
                         Individual: {roll.results.join(", ")}
                       </span>
-                      <span className="text-2xl font-bold text-primary">{roll.total}</span>
+                      <span className="text-2xl font-bold text-primary fantasy-shimmer animate-shimmer rounded px-2 py-1">{roll.total}</span>
                     </div>
                   </div>
                 ))}

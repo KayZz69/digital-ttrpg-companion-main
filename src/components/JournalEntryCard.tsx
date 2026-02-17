@@ -57,7 +57,7 @@ export const JournalEntryCard = ({ entry, onEdit, onDelete }: JournalEntryCardPr
   const Icon = tagIcons.general;
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="fantasy-card-hover">
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">

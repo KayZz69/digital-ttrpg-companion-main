@@ -111,7 +111,7 @@ export const CharacterList = () => {
       <div className="container max-w-6xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold mb-2">My Characters</h1>
+            <h1 className="text-3xl font-bold mb-2 font-display fantasy-heading">My Characters</h1>
             <p className="text-muted-foreground">
               Manage your adventurers across different game systems
             </p>
@@ -186,7 +186,7 @@ export const CharacterList = () => {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCharacters.map((character) => (
-              <Card key={character.id} className="hover:shadow-lg transition-shadow">
+              <Card key={character.id} className="fantasy-card-hover">
                 <CardHeader>
                   <div className="flex items-start justify-between mb-2">
                     <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/10 text-primary">

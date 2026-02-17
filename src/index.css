@@ -8,34 +8,50 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 28 20% 97%;
-    --foreground: 28 15% 15%;
-    --card: 28 25% 98%;
-    --card-foreground: 28 15% 15%;
-    --popover: 28 30% 98%;
-    --popover-foreground: 28 15% 15%;
-    --primary: 25 60% 45%;
-    --primary-foreground: 28 5% 98%;
-    --secondary: 280 30% 50%;
-    --secondary-foreground: 28 5% 98%;
-    --muted: 28 15% 92%;
-    --muted-foreground: 28 8% 45%;
-    --accent: 35 80% 55%;
-    --accent-foreground: 28 5% 15%;
+    /* Typography — Layer 1 */
+    --font-display: 'Cinzel', serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Parchment-tinted backgrounds — Layer 2 */
+    --background: 38 30% 95%;
+    --foreground: 25 20% 12%;
+    --card: 40 35% 93%;
+    --card-foreground: 25 20% 12%;
+    --popover: 38 35% 96%;
+    --popover-foreground: 25 20% 12%;
+
+    /* Gold-tinted primary */
+    --primary: 38 75% 40%;
+    --primary-foreground: 40 10% 98%;
+
+    /* Arcane purple secondary — for spell/magic sections */
+    --secondary: 270 40% 45%;
+    --secondary-foreground: 270 5% 98%;
+
+    /* Warm stone muted */
+    --muted: 35 18% 88%;
+    --muted-foreground: 30 10% 42%;
+
+    /* Gold-amber accent */
+    --accent: 42 85% 52%;
+    --accent-foreground: 30 10% 10%;
+
+    /* Borders that feel like aged parchment edges */
+    --border: 32 25% 78%;
+    --input: 32 25% 78%;
+    --ring: 38 75% 40%;
+
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 28 20% 85%;
-    --input: 28 20% 85%;
-    --ring: 25 60% 45%;
     --radius: 0.75rem;
-    
+
     /* Fantasy theme variables */
     --fantasy-gold: 45 90% 55%;
     --fantasy-stone: 28 10% 60%;
     --fantasy-parchment: 40 35% 90%;
     --fantasy-wood: 25 40% 35%;
-    --fantasy-magic: 280 50% 60%;
-    
+    --fantasy-magic: 270 50% 60%;
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -66,14 +82,14 @@ All colors MUST be HSL.
     --border: 28 20% 20%;
     --input: 28 20% 20%;
     --ring: 25 65% 50%;
-    
+
     /* Fantasy theme variables - dark mode */
     --fantasy-gold: 45 85% 60%;
     --fantasy-stone: 28 8% 45%;
     --fantasy-parchment: 40 25% 25%;
     --fantasy-wood: 25 35% 25%;
     --fantasy-magic: 280 55% 65%;
-    
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -92,5 +108,6 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
   }
 }

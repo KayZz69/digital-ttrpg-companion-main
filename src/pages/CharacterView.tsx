@@ -451,7 +451,7 @@ export const CharacterView = () => {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle className="text-3xl mb-2">{dndCharacter.name}</CardTitle>
+                <CardTitle className="text-3xl mb-2 font-display">{dndCharacter.name}</CardTitle>
                 <CardDescription className="text-lg">
                   {dndCharacter.race} {dndCharacter.class} | Level {dndCharacter.level}
                 </CardDescription>
@@ -462,6 +462,8 @@ export const CharacterView = () => {
             </div>
           </CardHeader>
         </Card>
+
+        <hr className="fantasy-divider" />
 
         {/* Rest Mechanics */}
         <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -598,7 +600,7 @@ export const CharacterView = () => {
             {/* Death Saves (shown when HP is 0) */}
             {dndCharacter.hitPoints.current === 0 && (
               <div className="pt-4 border-t">
-                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 font-display">
                   <Skull className="w-4 h-4" />
                   Death Saves
                 </h3>
@@ -693,6 +695,8 @@ export const CharacterView = () => {
           </CardContent>
         </Card>
 
+        <hr className="fantasy-divider" />
+
         {/* Ability Scores & Saving Throws */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           <Card>
@@ -736,6 +740,8 @@ export const CharacterView = () => {
           />
         </div>
 
+        <hr className="fantasy-divider" />
+
         {/* Spells (if applicable) */}
         {dndCharacter.spellcastingAbility && (
           <div className="mb-6">
@@ -768,6 +774,8 @@ export const CharacterView = () => {
           carryingCapacity={getCarryingCapacity(dndCharacter.abilityScores.strength)}
           onUpdateInventory={updateInventory}
         />
+
+        <hr className="fantasy-divider" />
 
         {/* Additional Info */}
         <div className="grid md:grid-cols-2 gap-6 mt-6">

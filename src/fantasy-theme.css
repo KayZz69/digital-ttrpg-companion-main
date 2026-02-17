@@ -1,0 +1,121 @@
+/* ==========================================================================
+   Fantasy Theme — Surface & Texture Treatments (Layer 3)
+   Pure CSS visual utilities for parchment, dividers, and card framing.
+   ========================================================================== */
+
+/* Parchment grain texture via layered radial gradients.
+   Creates a subtle, organic paper-like surface without image assets. */
+.fantasy-parchment {
+   background-image:
+      radial-gradient(ellipse at 20% 50%, hsl(40 30% 92% / 0.8), transparent 50%),
+      radial-gradient(ellipse at 80% 20%, hsl(35 25% 88% / 0.6), transparent 40%),
+      radial-gradient(ellipse at 50% 80%, hsl(38 20% 90% / 0.5), transparent 45%);
+}
+
+/* Ornamental section dividers — gold gradient fading to transparent edges.
+   Use on <hr> or any block-level element to create a fantasy separator. */
+.fantasy-divider {
+   border: none;
+   height: 2px;
+   background: linear-gradient(90deg,
+         transparent 0%,
+         hsl(var(--fantasy-gold)) 20%,
+         hsl(var(--fantasy-gold)) 80%,
+         transparent 100%);
+   margin: 1.5rem 0;
+}
+
+/* Framed card panels — pronounced shadow + inset border glow.
+   Gives cards a hand-crafted, slightly embossed appearance. */
+.fantasy-card {
+   border: 1.5px solid hsl(var(--border));
+   box-shadow:
+      0 1px 3px hsl(30 20% 50% / 0.12),
+      inset 0 0 0 1px hsl(var(--fantasy-parchment) / 0.3);
+}
+
+/* ==========================================================================
+   Fantasy Theme — Iconography & Embellishments (Layer 4)
+   Decorative pseudo-element accents for cards and headings.
+   ========================================================================== */
+
+/* Corner flourishes — gold fleur-de-lis in top-left and bottom-right corners.
+   Apply to hero/feature cards for a hand-illuminated manuscript feel. */
+.fantasy-flourish {
+   position: relative;
+}
+
+.fantasy-flourish::before,
+.fantasy-flourish::after {
+   content: '⚜';
+   position: absolute;
+   font-size: 0.875rem;
+   color: hsl(var(--fantasy-gold) / 0.5);
+   pointer-events: none;
+}
+
+.fantasy-flourish::before {
+   top: 0.5rem;
+   left: 0.75rem;
+}
+
+.fantasy-flourish::after {
+   bottom: 0.5rem;
+   right: 0.75rem;
+}
+
+/* Scroll/banner heading decoration — gold em-dashes flanking the title text.
+   Gives page headings a parchment proclamation aesthetic. */
+.fantasy-heading {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.75rem;
+}
+
+.fantasy-heading::before,
+.fantasy-heading::after {
+   content: '—';
+   color: hsl(var(--fantasy-gold));
+   font-weight: 300;
+   letter-spacing: 0.25em;
+}
+
+/* ==========================================================================
+   Fantasy Theme — Micro-animations (Layer 5)
+   Subtle motion that makes interacting with the UI feel magical.
+   ========================================================================== */
+
+/* Button hover glow — warm gold aura on primary action buttons.
+   Pairs well with Tailwind's `animate-gold-glow` for an idle pulse. */
+.fantasy-btn-glow {
+   transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.fantasy-btn-glow:hover {
+   box-shadow:
+      0 0 12px hsl(var(--fantasy-gold) / 0.4),
+      0 0 24px hsl(var(--fantasy-gold) / 0.15);
+}
+
+/* Card lift on hover — subtle upward shift + warm shadow expansion.
+   Replaces generic `hover:shadow-lg` on interactive card elements. */
+.fantasy-card-hover {
+   transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.fantasy-card-hover:hover {
+   transform: translateY(-2px);
+   box-shadow:
+      0 8px 20px hsl(30 30% 40% / 0.15),
+      0 2px 6px hsl(30 20% 50% / 0.1);
+}
+
+/* Dice roll shimmer — sliding gold highlight across the result display.
+   Combine with Tailwind's `animate-shimmer` class to activate. */
+.fantasy-shimmer {
+   background: linear-gradient(110deg,
+         transparent 25%,
+         hsl(var(--fantasy-gold) / 0.1) 37%,
+         transparent 63%);
+   background-size: 200% 100%;
+}

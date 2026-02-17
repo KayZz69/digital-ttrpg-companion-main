@@ -262,6 +262,8 @@ export const SessionJournal = () => {
           </CardHeader>
         </Card>
 
+        <hr className="fantasy-divider" />
+
         {showForm && (
           <Card className="mb-6 border-primary/50">
             <CardHeader>
@@ -381,6 +383,8 @@ export const SessionJournal = () => {
             </SelectContent>
           </Select>
         </div>
+
+        <hr className="fantasy-divider" />
 
         <div className="space-y-4">
           {filteredEntries.length === 0 ? (
