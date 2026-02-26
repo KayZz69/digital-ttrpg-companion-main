@@ -185,6 +185,8 @@ export interface DnD5eCharacter {
   class: string;
   /** Character level (1-20) */
   level: number;
+  /** Whether XP or milestones are used for leveling (default: "xp") */
+  levelingMode?: "xp" | "milestone";
   /** The six core ability scores */
   abilityScores: DnD5eAbilityScores;
   /** Character's moral/ethical alignment (optional) */

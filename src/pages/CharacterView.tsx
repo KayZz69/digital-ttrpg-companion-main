@@ -12,14 +12,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { InventoryManager } from "@/components/InventoryManager";
 import { SkillsManager } from "@/components/SkillsManager";
 import { SavingThrowsManager } from "@/components/SavingThrowsManager";
 import { SpellsManager } from "@/components/SpellsManager";
-import { ArrowLeft, Edit, Dices, Heart, Skull, Plus, Minus, Moon, Sun, X, Circle, CheckCircle2, XCircle, BookOpen, Swords } from "lucide-react";
+import { LevelUpWizard } from "@/components/LevelUpWizard/LevelUpWizard";
+import { ArrowLeft, Edit, Dices, Heart, Skull, Plus, Minus, Moon, Sun, X, Circle, CheckCircle2, XCircle, BookOpen, Swords, TrendingUp, Star } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, writeCharacters } from "@/lib/storage";
 import { getClassHitDie } from "@/lib/dndCompendium";
+import { getProficiencyBonus } from "@/lib/dndRules";
+import { canLevelUp, getXPForLevel, getXPProgress, MAX_LEVEL } from "@/utils/progressionUtils";
 
 /**
  * Character View page component.
@@ -41,6 +46,8 @@ export const CharacterView = () => {
   const [character, setCharacter] = useState<Character | null>(null);
   const [hpAdjustment, setHpAdjustment] = useState<string>("");
   const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
+  const [showLevelUpWizard, setShowLevelUpWizard] = useState(false);
+  const [xpInput, setXpInput] = useState<string>("");
 
   useEffect(() => {
     if (id) {
@@ -385,6 +392,56 @@ export const CharacterView = () => {
     });
   };
 
+  const addXP = () => {
+    if (!character) return;
+    const amount = parseInt(xpInput) || 0;
+    if (amount <= 0) {
+      toast({ title: "Invalid XP", description: "Enter a positive XP amount.", variant: "destructive" });
+      return;
+    }
+    const dndChar = character.data as DnD5eCharacter;
+    const newXP = (dndChar.experiencePoints || 0) + amount;
+    const updatedCharacter: Character = {
+      ...character,
+      data: { ...dndChar, experiencePoints: newXP },
+    };
+    saveCharacter(updatedCharacter);
+    setXpInput("");
+    toast({ title: `+${amount} XP`, description: `Total: ${newXP} XP` });
+  };
+
+  const handleLevelUpConfirm = (result: {
+    newLevel: number;
+    hpGained: number;
+    newMaxHP: number;
+    newAbilityScores: DnD5eCharacter["abilityScores"];
+  }) => {
+    if (!character) return;
+    const dndChar = character.data as DnD5eCharacter;
+    const updatedCharacter: Character = {
+      ...character,
+      data: {
+        ...dndChar,
+        level: result.newLevel,
+        abilityScores: result.newAbilityScores,
+        hitPoints: {
+          current: dndChar.hitPoints.current + result.hpGained,
+          max: result.newMaxHP,
+        },
+        hitDice: {
+          current: (dndChar.hitDice?.current ?? dndChar.level) + 1,
+          max: result.newLevel,
+        },
+      },
+    };
+    saveCharacter(updatedCharacter);
+    setShowLevelUpWizard(false);
+    toast({
+      title: `Level Up! Now level ${result.newLevel}`,
+      description: `+${result.hpGained} HP (max: ${result.newMaxHP})`,
+    });
+  };
+
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -414,16 +471,39 @@ export const CharacterView = () => {
   }
 
   const dndCharacter = character.data as DnD5eCharacter;
+  const xpProgress = getXPProgress(dndCharacter.experiencePoints || 0);
+  const isMilestone = dndCharacter.levelingMode === "milestone";
+  const readyToLevelUp =
+    dndCharacter.level < MAX_LEVEL &&
+    (isMilestone || canLevelUp(dndCharacter.level, dndCharacter.experiencePoints || 0));
+  const profBonus = getProficiencyBonus(dndCharacter.level);
 
   return (
     <div className="min-h-screen bg-background">
+      {showLevelUpWizard && (
+        <LevelUpWizard
+          open={showLevelUpWizard}
+          character={character}
+          onClose={() => setShowLevelUpWizard(false)}
+          onConfirm={handleLevelUpConfirm}
+        />
+      )}
       <div className="container max-w-4xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <Button variant="ghost" onClick={() => navigate("/characters")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Characters
           </Button>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {readyToLevelUp && (
+              <Button
+                onClick={() => setShowLevelUpWizard(true)}
+                className="bg-yellow-500 hover:bg-yellow-600 text-yellow-950 font-semibold"
+              >
+                <Star className="w-4 h-4 mr-2" />
+                Level Up!
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate(`/character/${id}/combat`)}>
               <Swords className="w-4 h-4 mr-2" />
               Combat
@@ -456,11 +536,109 @@ export const CharacterView = () => {
                   {dndCharacter.race} {dndCharacter.class} | Level {dndCharacter.level}
                 </CardDescription>
               </div>
-              <span className="text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
-                D&D 5e
-              </span>
+              <div className="flex flex-col items-end gap-2">
+                <span className="text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
+                  D&D 5e
+                </span>
+                <span className="text-xs font-medium px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                  Proficiency Bonus: +{profBonus}
+                </span>
+              </div>
             </div>
           </CardHeader>
+        </Card>
+
+        {/* XP & Leveling */}
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <TrendingUp className="w-4 h-4" />
+                Experience & Leveling
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="milestone-toggle" className="text-xs text-muted-foreground">
+                  Milestone
+                </Label>
+                <Switch
+                  id="milestone-toggle"
+                  checked={isMilestone}
+                  onCheckedChange={(checked) => {
+                    const dndChar = character.data as DnD5eCharacter;
+                    saveCharacter({
+                      ...character,
+                      data: { ...dndChar, levelingMode: checked ? "milestone" : "xp" },
+                    });
+                  }}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {isMilestone ? (
+              <div className="text-center py-2">
+                <p className="text-sm text-muted-foreground">
+                  Milestone leveling — your DM decides when you level up.
+                </p>
+                {dndCharacter.level < MAX_LEVEL && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => setShowLevelUpWizard(true)}
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    Level Up (DM Grant)
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="flex items-end justify-between text-sm">
+                  <span className="text-muted-foreground">Level {xpProgress.level}</span>
+                  {dndCharacter.level < MAX_LEVEL ? (
+                    <span className="text-muted-foreground">
+                      {dndCharacter.experiencePoints || 0} / {getXPForLevel(dndCharacter.level + 1)} XP
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground font-medium">MAX LEVEL</span>
+                  )}
+                </div>
+                <Progress
+                  value={xpProgress.percentage}
+                  className="h-2"
+                />
+                {dndCharacter.level < MAX_LEVEL && (
+                  <p className="text-xs text-muted-foreground">
+                    {xpProgress.xpToNext} XP to level {dndCharacter.level + 1}
+                  </p>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="XP to add..."
+                    value={xpInput}
+                    onChange={(e) => setXpInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") addXP(); }}
+                    className="flex-1"
+                  />
+                  <Button variant="outline" onClick={addXP}>
+                    Add XP
+                  </Button>
+                </div>
+                {readyToLevelUp && (
+                  <Button
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-yellow-950 font-semibold"
+                    onClick={() => setShowLevelUpWizard(true)}
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    Level Up Available!
+                  </Button>
+                )}
+              </>
+            )}
+          </CardContent>
         </Card>
 
         <hr className="fantasy-divider" />
@@ -784,10 +962,6 @@ export const CharacterView = () => {
               <CardTitle>Character Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div>
-                <span className="text-sm text-muted-foreground">Experience Points:</span>
-                <p className="font-medium">{dndCharacter.experiencePoints} XP</p>
-              </div>
               {dndCharacter.alignment && (
                 <div>
                   <span className="text-sm text-muted-foreground">Alignment:</span>
