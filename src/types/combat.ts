@@ -3,6 +3,29 @@
  * Handles initiative order, combatant status, and condition tracking.
  */
 
+import type { DnD5eAbilityScores } from "@/types/character";
+
+/**
+ * Resolved stats for a combatant's equipped mainHand weapon.
+ * Pre-computed at the time the combatant is added to combat.
+ */
+export interface EquippedWeaponStats {
+  /** Weapon display name */
+  name: string;
+  /** Damage dice expression (e.g., "1d8") */
+  damageDice: string;
+  /** Damage type (e.g., "slashing") */
+  damageType: string;
+  /** Pre-computed attack bonus: ability mod + proficiency + magic bonus */
+  attackBonus: number;
+  /** Damage bonus: ability mod + magic bonus (proficiency is not added to damage) */
+  damageBonus: number;
+  /** Whether the weapon has the Finesse property */
+  isFinesse: boolean;
+  /** Whether the weapon is a ranged weapon */
+  isRanged: boolean;
+}
+
 /**
  * Classification of a combatant in the initiative order.
  * Determines visual styling and behavior in the combat tracker.
@@ -72,6 +95,18 @@ export interface Combatant {
   isActive?: boolean;
   /** Links to a Character if this is a player combatant */
   characterId?: string;
+  /** Active concentration spell name; undefined when not concentrating */
+  concentrationSpellName?: string;
+  /** Full ability scores (populated from character data for player combatants) */
+  abilityScores?: DnD5eAbilityScores;
+  /** Proficiency bonus (populated from character data for player combatants) */
+  proficiencyBonus?: number;
+  /** Which ability governs spellcasting (populated for spellcasting combatants) */
+  spellcastingAbility?: keyof DnD5eAbilityScores;
+  /** Saving throw proficiencies by ability key */
+  savingThrowProficiencies?: Record<string, boolean>;
+  /** Resolved stats for the equipped mainHand weapon */
+  equippedWeapon?: EquippedWeaponStats;
 }
 
 /**

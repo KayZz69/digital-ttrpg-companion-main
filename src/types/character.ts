@@ -67,6 +67,14 @@ export interface InventoryItem {
   equipped: boolean;
   /** Which slot the item occupies when equipped */
   equipmentSlot?: EquipmentSlot;
+  /** Damage dice for non-compendium weapons (e.g., "1d8") */
+  damageDice?: string;
+  /** Flat damage bonus beyond the ability modifier */
+  damageBonus?: number;
+  /** Damage type for non-compendium weapons (e.g., "slashing") */
+  damageType?: string;
+  /** Magic or enhancement bonus applied to both attack and damage rolls (+1, +2, +3) */
+  weaponAttackBonus?: number;
 }
 
 /**
