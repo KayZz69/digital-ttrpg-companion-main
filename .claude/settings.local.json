@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(tail:*)",
+      "Bash(cd:*)",
+      "Bash(claude mcp:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(git:*)"
     ]
   }
 }
