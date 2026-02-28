@@ -15,9 +15,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CombatParticipant } from "@/components/CombatParticipant";
-import { ArrowLeft, Plus, Swords, RotateCcw, ChevronRight, Dices, RefreshCw, Users } from "lucide-react";
+import { ArrowLeft, Plus, Swords, RotateCcw, ChevronRight, Dices, RefreshCw, Users, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, readNPCs, writeCharacters } from "@/lib/storage";
+import { getProficiencyBonus, getAbilityModifier, formatModifier } from "@/lib/dndRules";
+import { getClassByName, getClassSavingThrowProficiencies } from "@/lib/dndCompendium";
+import {
+  calcConcentrationDC,
+  resolveWeaponStats,
+  rollSavingThrow,
+  type SavingThrowResult,
+} from "@/utils/combatMathUtils";
 
 /**
  * Combat Tracker page component.
@@ -47,6 +55,17 @@ export const CombatTracker = () => {
   const [showNPCDialog, setShowNPCDialog] = useState(false);
   const [savedNPCs, setSavedNPCs] = useState<NPC[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
+
+  /** Pending concentration check triggered by damage to a concentrating combatant */
+  const [concentrationCheck, setConcentrationCheck] = useState<{
+    combatantId: string;
+    combatantName: string;
+    spellName: string;
+    dc: number;
+  } | null>(null);
+
+  /** Result of rolling the concentration CON save */
+  const [concentrationRollResult, setConcentrationRollResult] = useState<SavingThrowResult | null>(null);
 
   /** Form state for adding a new custom combatant */
   const [newCombatant, setNewCombatant] = useState({
@@ -114,6 +133,18 @@ export const CombatTracker = () => {
     }
 
     const dexModifier = Math.floor((dndChar.abilityScores.dexterity - 10) / 2);
+    const profBonus = getProficiencyBonus(dndChar.level);
+    const classData = getClassByName(dndChar.class);
+    const weaponProficiencies = classData?.weaponProficiencies ?? [];
+    // Prefer explicit mainHand slot; fall back to any equipped weapon
+    const mainHandItem =
+      dndChar.inventory.find((i) => i.equipped && i.equipmentSlot === "mainHand") ??
+      dndChar.inventory.find((i) => i.equipped && i.sourceItemType === "weapon") ??
+      dndChar.inventory.find((i) => i.equipped && (i.damageDice ?? "") !== "");
+    const resolvedWeapon = mainHandItem
+      ? resolveWeaponStats(mainHandItem, dndChar.abilityScores, profBonus, weaponProficiencies)
+      : null;
+    const savingThrowProfs = dndChar.savingThrows ?? getClassSavingThrowProficiencies(dndChar.class);
 
     const playerCombatant: Combatant = {
       id: crypto.randomUUID(),
@@ -127,6 +158,11 @@ export const CombatTracker = () => {
       },
       armorClass: 10 + dexModifier, // Base AC + DEX mod
       characterId: character.id,
+      abilityScores: dndChar.abilityScores,
+      proficiencyBonus: profBonus,
+      spellcastingAbility: dndChar.spellcastingAbility,
+      savingThrowProficiencies: savingThrowProfs,
+      equippedWeapon: resolvedWeapon ?? undefined,
     };
 
     setCombatants([...combatants, playerCombatant]);
@@ -235,14 +271,29 @@ export const CombatTracker = () => {
    * @param newHP - The new current HP value
    */
   const updateCombatantHP = (id: string, newHP: number) => {
+    const combatant = combatants.find((c) => c.id === id);
+    const oldHP = combatant?.hitPoints.current ?? newHP;
+    const damageTaken = Math.max(0, oldHP - newHP);
+
     const updated = combatants.map((c) =>
       c.id === id ? { ...c, hitPoints: { ...c.hitPoints, current: newHP } } : c
     );
     setCombatants(updated);
 
+    // Trigger concentration check when a concentrating combatant takes damage
+    if (combatant?.concentrationSpellName && damageTaken > 0) {
+      setConcentrationCheck({
+        combatantId: id,
+        combatantName: combatant.name,
+        spellName: combatant.concentrationSpellName,
+        dc: calcConcentrationDC(damageTaken),
+      });
+      setConcentrationRollResult(null);
+    }
+
     // Sync player character HP back to character data
-    const combatant = updated.find((c) => c.id === id);
-    if (combatant?.characterId && character) {
+    const updatedCombatant = updated.find((c) => c.id === id);
+    if (updatedCombatant?.characterId && character) {
       const dndChar = character.data as DnD5eCharacter;
       const updatedCharacter: Character = {
         ...character,
@@ -343,6 +394,44 @@ export const CombatTracker = () => {
     }
 
     setCurrentTurn(nextIndex);
+  };
+
+  /** Updates or clears the concentration spell on a combatant. */
+  const handleConcentrationChange = (id: string, spellName: string | undefined) => {
+    setCombatants((prev) => prev.map((c) => (c.id === id ? { ...c, concentrationSpellName: spellName } : c)));
+  };
+
+  /** Rolls a CON saving throw for the current concentration check. */
+  const rollConcentrationCheck = () => {
+    if (!concentrationCheck) return;
+    const combatant = combatants.find((c) => c.id === concentrationCheck.combatantId);
+    if (!combatant?.abilityScores || !combatant.proficiencyBonus) return;
+    const conMod = getAbilityModifier(combatant.abilityScores.constitution);
+    const hasProficiency = combatant.savingThrowProficiencies?.["constitution"] ?? false;
+    const result = rollSavingThrow(concentrationCheck.dc, conMod, combatant.proficiencyBonus, hasProficiency);
+    setConcentrationRollResult(result);
+  };
+
+  /** Resolves a concentration check - clears spell on failure. */
+  const resolveConcentration = (maintained: boolean) => {
+    if (!concentrationCheck) return;
+    if (!maintained) {
+      setCombatants((prev) =>
+        prev.map((c) => (c.id === concentrationCheck.combatantId ? { ...c, concentrationSpellName: undefined } : c))
+      );
+      toast({
+        title: "Concentration Lost",
+        description: `${concentrationCheck.combatantName} lost concentration on ${concentrationCheck.spellName}.`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Concentration Maintained",
+        description: `${concentrationCheck.combatantName} maintains ${concentrationCheck.spellName}.`,
+      });
+    }
+    setConcentrationCheck(null);
+    setConcentrationRollResult(null);
   };
 
   const resetCombat = () => {
@@ -593,11 +682,86 @@ export const CombatTracker = () => {
                 onUpdateHP={updateCombatantHP}
                 onRemove={removeCombatant}
                 onUpdateConditions={updateCombatantConditions}
+                onConcentrationChange={handleConcentrationChange}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Concentration Check Dialog - triggered automatically when concentrating combatant takes damage */}
+      <Dialog
+        open={concentrationCheck !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConcentrationCheck(null);
+            setConcentrationRollResult(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-purple-500" />
+              Concentration Check
+            </DialogTitle>
+            <DialogDescription>
+              <strong>{concentrationCheck?.combatantName}</strong> took damage while concentrating on{" "}
+              <strong>{concentrationCheck?.spellName}</strong>.
+              <br />
+              DC {concentrationCheck?.dc} Constitution saving throw required.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {!concentrationRollResult && concentrationCheck && (
+              (() => {
+                const c = combatants.find((x) => x.id === concentrationCheck.combatantId);
+                return c?.abilityScores ? (
+                  <Button onClick={rollConcentrationCheck} className="w-full">
+                    Roll CON Save (DC {concentrationCheck.dc})
+                  </Button>
+                ) : null;
+              })()
+            )}
+
+            {concentrationRollResult && (
+              <div
+                className={`rounded p-3 text-sm ${
+                  concentrationRollResult.success
+                    ? "bg-green-500/10 border border-green-500/20"
+                    : "bg-red-500/10 border border-red-500/20"
+                }`}
+              >
+                <div>
+                  Roll: {concentrationRollResult.roll} {formatModifier(concentrationRollResult.bonus)} ={" "}
+                  {concentrationRollResult.total} vs DC {concentrationRollResult.dc}
+                </div>
+                <div className="font-bold mt-1">
+                  {concentrationRollResult.success ? "Concentration maintained!" : "Concentration lost!"}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => resolveConcentration(true)}
+                variant={concentrationRollResult?.success ? "default" : "outline"}
+                className="flex-1"
+              >
+                Maintain
+              </Button>
+              <Button
+                onClick={() => resolveConcentration(false)}
+                variant={concentrationRollResult?.success === false ? "destructive" : "outline"}
+                className="flex-1"
+              >
+                Lose Concentration
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
