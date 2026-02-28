@@ -60,7 +60,7 @@ export const SystemSelector = ({ onSelectSystem }: SystemSelectorProps) => {
       <div className="text-center mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex-1"></div>
-          <h1 className="text-4xl font-bold text-foreground">SoloQuest Toolkit</h1>
+          <h1 className="text-4xl font-bold text-foreground font-display fantasy-heading">SoloQuest Toolkit</h1>
           <div className="flex-1 flex justify-end gap-2">
             <Button variant="outline" onClick={() => navigate("/dice")}>
               <Dices className="w-4 h-4 mr-2" />
@@ -81,7 +81,7 @@ export const SystemSelector = ({ onSelectSystem }: SystemSelectorProps) => {
           return (
             <Card
               key={system.id}
-              className={`transition-all hover:shadow-lg ${!system.available ? "opacity-60" : ""
+              className={`transition-all fantasy-card-hover fantasy-flourish ${!system.available ? "opacity-60" : ""
                 }`}
             >
               <CardHeader>

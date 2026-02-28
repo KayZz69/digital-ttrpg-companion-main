@@ -367,7 +367,7 @@ export const NPCLibrary = () => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredNPCs.map((npc) => (
-              <Card key={npc.id} className="hover:border-primary/50 transition-colors">
+              <Card key={npc.id} className="fantasy-card-hover">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">

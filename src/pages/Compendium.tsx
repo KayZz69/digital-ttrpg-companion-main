@@ -346,11 +346,11 @@ export const Compendium = () => {
   const linkedSpellState =
     linkedDndCharacter && linkedDndCharacter.spellcastingAbility
       ? getSpellSelectionState(
-          linkedDndCharacter.class,
-          linkedDndCharacter.level,
-          linkedDndCharacter.abilityScores[linkedDndCharacter.spellcastingAbility] || 10,
-          linkedDndCharacter.preparedSpells || []
-        )
+        linkedDndCharacter.class,
+        linkedDndCharacter.level,
+        linkedDndCharacter.abilityScores[linkedDndCharacter.spellcastingAbility] || 10,
+        linkedDndCharacter.preparedSpells || []
+      )
       : null;
 
   return (
@@ -358,7 +358,7 @@ export const Compendium = () => {
       <div className="container mx-auto max-w-6xl p-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Compendium</h1>
+            <h1 className="text-3xl font-bold font-display">Compendium</h1>
             <p className="text-muted-foreground">
               Browse spells and equipment with fast filters for table-ready prep.
             </p>

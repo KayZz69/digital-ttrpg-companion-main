@@ -22,7 +22,7 @@ export const DiceRoller = () => {
       <div className="container max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Dice Roller</h1>
+            <h1 className="text-3xl font-bold mb-2 font-display">Dice Roller</h1>
             <p className="text-muted-foreground">
               Roll dice for your solo adventures
             </p>
