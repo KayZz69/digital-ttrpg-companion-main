@@ -6,7 +6,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SpellSlots, PreparedSpell, DnD5eAbilityScores } from "@/types/character";
-import { Sparkles, Plus, Minus, Trash2, BookOpen } from "lucide-react";
+import { Sparkles, Plus, Minus, Trash2, BookOpen, Moon, Sun } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +43,12 @@ import {
   getSpellSelectionState,
   validateSpellSelection,
 } from "@/lib/dndRules";
+import {
+  canCastAsRitual,
+  isConcentrationConflict,
+  isPactMagicCaster,
+  restoreSpellSlots,
+} from "@/utils/spellUtils";
 
 interface SpellsManagerProps {
   spellSlots: SpellSlots;
@@ -43,6 +59,10 @@ interface SpellsManagerProps {
   level: number;
   onUpdateSpellSlots: (slots: SpellSlots) => void;
   onUpdatePreparedSpells: (spells: PreparedSpell[]) => void;
+  /** Name of the spell currently being concentrated on, if any */
+  activeConcentrationSpell?: string | null;
+  /** Callback when concentration state changes (spell name or null to end) */
+  onConcentrationChange?: (spellName: string | null) => void;
 }
 
 export const SpellsManager = ({
@@ -54,10 +74,13 @@ export const SpellsManager = ({
   level,
   onUpdateSpellSlots,
   onUpdatePreparedSpells,
+  activeConcentrationSpell,
+  onConcentrationChange,
 }: SpellsManagerProps) => {
   const [isAddSpellOpen, setIsAddSpellOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [compendiumLevelFilter, setCompendiumLevelFilter] = useState<string>("all");
+  const [concentrationConflictSpell, setConcentrationConflictSpell] = useState<string | null>(null);
   const [newSpell, setNewSpell] = useState<Omit<PreparedSpell, "id">>({
     sourceSpellId: undefined,
     name: "",
@@ -130,16 +153,55 @@ export const SpellsManager = ({
     onUpdateSpellSlots(updatedSlots);
   };
 
-  const restoreAllSlots = () => {
-    const restoredSlots = { ...spellSlots };
-    (Object.keys(restoredSlots) as Array<keyof SpellSlots>).forEach((key) => {
-      restoredSlots[key].current = restoredSlots[key].max;
-    });
-    onUpdateSpellSlots(restoredSlots);
-    toast({
-      title: "Spell Slots Restored",
-      description: "All spell slots have been restored to maximum.",
-    });
+  const handleRest = (restType: "short" | "long") => {
+    const className = characterClass || "";
+    const restored = restoreSpellSlots(spellSlots, className, level, restType);
+    onUpdateSpellSlots(restored);
+
+    if (restType === "long") {
+      // Long rest ends concentration
+      onConcentrationChange?.(null);
+      toast({
+        title: "Long Rest Complete",
+        description: "All spell slots have been restored.",
+      });
+    } else {
+      if (isPactMagicCaster(className)) {
+        toast({
+          title: "Short Rest Complete",
+          description: "Pact magic slots restored.",
+        });
+      } else {
+        toast({
+          title: "Short Rest Complete",
+          description: "No spell slot changes for this class on short rest.",
+        });
+      }
+    }
+  };
+
+  /** Called when user wants to concentrate on a new spell */
+  const handleConcentrate = (spellName: string) => {
+    if (isConcentrationConflict(activeConcentrationSpell, { concentration: true })) {
+      setConcentrationConflictSpell(spellName);
+    } else {
+      onConcentrationChange?.(spellName);
+      toast({
+        title: "Concentrating",
+        description: `Now concentrating on ${spellName}.`,
+      });
+    }
+  };
+
+  const confirmConcentrationSwitch = () => {
+    if (concentrationConflictSpell) {
+      onConcentrationChange?.(concentrationConflictSpell);
+      toast({
+        title: "Concentration Changed",
+        description: `Now concentrating on ${concentrationConflictSpell}. ${activeConcentrationSpell} ended.`,
+      });
+      setConcentrationConflictSpell(null);
+    }
   };
 
   const addSpell = () => {
@@ -256,9 +318,16 @@ export const SpellsManager = ({
             <Sparkles className="w-5 h-5" />
             Spellcasting
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={restoreAllSlots}>
-            Restore All Slots
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleRest("short")}>
+              <Moon className="mr-1 h-3 w-3" />
+              Short Rest
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleRest("long")}>
+              <Sun className="mr-1 h-3 w-3" />
+              Long Rest
+            </Button>
+          </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-4 text-sm">
           <div>
@@ -279,6 +348,22 @@ export const SpellsManager = ({
               <span className="ml-2 font-medium">
                 {spellSelectionState.currentLeveledSpells}/{spellSelectionState.maxLeveledSpells} leveled
               </span>
+            </div>
+          )}
+          {activeConcentrationSpell && (
+            <div>
+              <span className="text-muted-foreground">Concentrating:</span>
+              <Badge variant="secondary" className="ml-2">
+                ⊛ {activeConcentrationSpell}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-1 h-6 px-2 text-xs"
+                onClick={() => onConcentrationChange?.(null)}
+              >
+                End
+              </Button>
             </div>
           )}
         </div>
@@ -371,6 +456,16 @@ export const SpellsManager = ({
                         <p className="font-medium">{spell.name}</p>
                         <Badge variant="outline">{spellLevelDisplay(spell.level)}</Badge>
                         <Badge variant="secondary">{spell.school}</Badge>
+                        {spell.concentration && (
+                          <Badge variant="outline" className="border-amber-500/50 text-amber-600">
+                            ⊛ Conc.
+                          </Badge>
+                        )}
+                        {spell.ritual && canCastAsRitual(spell, characterClass || "") && (
+                          <Badge variant="outline" className="border-blue-500/50 text-blue-600">
+                            📖 Ritual
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {spell.castingTime} | {spell.range} | {spell.duration}
@@ -541,12 +636,35 @@ export const SpellsManager = ({
                 <div key={spell.id} className="space-y-2 rounded-lg bg-muted p-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h5 className="font-semibold">{spell.name}</h5>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h5 className="font-semibold">{spell.name}</h5>
+                        {spell.concentration && (
+                          <Badge variant="outline" className="border-amber-500/50 text-amber-600 text-xs">
+                            ⊛ Conc.
+                          </Badge>
+                        )}
+                        {spell.ritual && canCastAsRitual(spell, characterClass || "") && (
+                          <Badge variant="outline" className="border-blue-500/50 text-blue-600 text-xs">
+                            📖 Ritual
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {spellLevelDisplay(spell.level)}
                         {spell.school && ` | ${spell.school}`}
                         {spell.sourceSpellId && " | Compendium"}
                       </p>
+                      {spell.concentration && spell.level > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-1 h-6 px-2 text-xs"
+                          onClick={() => handleConcentrate(spell.name)}
+                          disabled={activeConcentrationSpell === spell.name}
+                        >
+                          {activeConcentrationSpell === spell.name ? "Concentrating" : "Concentrate"}
+                        </Button>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
@@ -590,6 +708,28 @@ export const SpellsManager = ({
           )}
         </div>
       </CardContent>
+      {/* Concentration conflict confirmation dialog */}
+      <AlertDialog
+        open={!!concentrationConflictSpell}
+        onOpenChange={(open) => !open && setConcentrationConflictSpell(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Concentration?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are currently concentrating on <strong>{activeConcentrationSpell}</strong>.
+              Casting <strong>{concentrationConflictSpell}</strong> will end your concentration
+              on the current spell. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmConcentrationSwitch}>
+              Switch Concentration
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

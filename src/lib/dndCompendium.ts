@@ -144,6 +144,8 @@ export function toPreparedSpell(spell: Spell, id: string = crypto.randomUUID()):
     components: formatSpellComponents(spell.components),
     duration: spell.duration,
     description: spell.description,
+    concentration: spell.concentration,
+    ritual: spell.ritual,
   };
 }
 

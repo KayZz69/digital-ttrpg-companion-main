@@ -140,6 +140,10 @@ export interface PreparedSpell {
   duration: string;
   /** Full description of the spell's effects */
   description: string;
+  /** Whether this spell requires concentration (default false for legacy data) */
+  concentration?: boolean;
+  /** Whether this spell can be cast as a ritual (default false for legacy data) */
+  ritual?: boolean;
 }
 
 /**

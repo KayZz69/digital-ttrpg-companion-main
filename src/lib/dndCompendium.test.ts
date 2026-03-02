@@ -51,4 +51,26 @@ describe("dndCompendium helpers", () => {
     expect(inventory.sourceItemId).toBe(equipment[0].id);
     expect(inventory.quantity).toBe(2);
   });
+
+  it("preserves concentration and ritual flags in toPreparedSpell", () => {
+    const wizardSpells = getClassSpells("Wizard");
+    // Find a concentration spell (e.g., Dancing Lights or True Strike)
+    const concentrationSpell = wizardSpells.find((s) => s.concentration === true);
+    expect(concentrationSpell).toBeDefined();
+    const prepared = toPreparedSpell(concentrationSpell!);
+    expect(prepared.concentration).toBe(true);
+
+    // Find a ritual spell (e.g., Alarm, Detect Magic)
+    const ritualSpell = wizardSpells.find((s) => s.ritual === true);
+    expect(ritualSpell).toBeDefined();
+    const preparedRitual = toPreparedSpell(ritualSpell!);
+    expect(preparedRitual.ritual).toBe(true);
+
+    // Non-ritual non-concentration spell
+    const normalSpell = wizardSpells.find((s) => !s.concentration && !s.ritual);
+    expect(normalSpell).toBeDefined();
+    const preparedNormal = toPreparedSpell(normalSpell!);
+    expect(preparedNormal.concentration).toBe(false);
+    expect(preparedNormal.ritual).toBe(false);
+  });
 });

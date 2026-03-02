@@ -48,6 +48,7 @@ export const CharacterView = () => {
   const [status, setStatus] = useState<"loading" | "ready" | "not_found">("loading");
   const [showLevelUpWizard, setShowLevelUpWizard] = useState(false);
   const [xpInput, setXpInput] = useState<string>("");
+  const [activeConcentrationSpell, setActiveConcentrationSpell] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -942,6 +943,8 @@ export const CharacterView = () => {
               level={dndCharacter.level}
               onUpdateSpellSlots={updateSpellSlots}
               onUpdatePreparedSpells={updatePreparedSpells}
+              activeConcentrationSpell={activeConcentrationSpell}
+              onConcentrationChange={setActiveConcentrationSpell}
             />
           </div>
         )}
