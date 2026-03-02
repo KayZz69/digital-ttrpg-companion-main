@@ -405,7 +405,7 @@ export const CombatTracker = () => {
   const rollConcentrationCheck = () => {
     if (!concentrationCheck) return;
     const combatant = combatants.find((c) => c.id === concentrationCheck.combatantId);
-    if (!combatant?.abilityScores || !combatant.proficiencyBonus) return;
+    if (!combatant?.abilityScores || combatant.proficiencyBonus === undefined) return;
     const conMod = getAbilityModifier(combatant.abilityScores.constitution);
     const hasProficiency = combatant.savingThrowProficiencies?.["constitution"] ?? false;
     const result = rollSavingThrow(concentrationCheck.dc, conMod, combatant.proficiencyBonus, hasProficiency);

@@ -212,7 +212,7 @@ function checkWeaponProficiency(
   return proficiencies.some((p) => {
     const lower = p.toLowerCase();
     if (lower === "simple weapons" && weaponCategory === "simple") return true;
-    if (lower === "martial weapons" && (weaponCategory === "martial" || weaponCategory === "simple")) return true;
+    if (lower === "martial weapons" && weaponCategory === "martial") return true;
     return lower.includes(nameLower);
   });
 }

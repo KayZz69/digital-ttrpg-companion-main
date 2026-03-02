@@ -4,21 +4,17 @@
  */
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DnD5eAbilityScores } from "@/types/character";
 import { getAbilityModifier } from "@/lib/dndRules";
+import { type ASIChoice } from "@/utils/progressionUtils";
 
 type AbilityKey = keyof DnD5eAbilityScores;
-
-type ASIChoice =
-  | { mode: "single"; ability: AbilityKey }
-  | { mode: "split"; ability1: AbilityKey; ability2: AbilityKey };
 
 interface ASIStepProps {
   abilityScores: DnD5eAbilityScores;
   choice: ASIChoice | null;
-  onChange: (choice: ASIChoice) => void;
+  onChange: (choice: ASIChoice | null) => void;
 }
 
 const ABILITIES: { key: AbilityKey; label: string }[] = [
@@ -35,22 +31,24 @@ export function ASIStep({ abilityScores, choice, onChange }: ASIStepProps) {
   const [singleAbility, setSingleAbility] = useState<AbilityKey | null>(
     choice?.mode === "single" ? choice.ability : null
   );
-  const [splitAbility1, setSplitAbility1] = useState<AbilityKey | null>(
-    choice?.mode === "split" ? choice.ability1 : null
-  );
-  const [splitAbility2, setSplitAbility2] = useState<AbilityKey | null>(
-    choice?.mode === "split" ? choice.ability2 : null
+  const [splitAbilities, setSplitAbilities] = useState<AbilityKey[]>(
+    choice?.mode === "split" ? [choice.ability1, choice.ability2] : []
   );
 
   const handleModeChange = (newMode: "single" | "split") => {
     setMode(newMode);
     setSingleAbility(null);
-    setSplitAbility1(null);
-    setSplitAbility2(null);
+    setSplitAbilities([]);
+    onChange(null);
   };
 
   const handleSingleSelect = (key: AbilityKey) => {
     if (abilityScores[key] >= 20) return;
+    if (singleAbility === key) {
+      setSingleAbility(null);
+      onChange(null);
+      return;
+    }
     setSingleAbility(key);
     onChange({ mode: "single", ability: key });
   };
@@ -58,34 +56,27 @@ export function ASIStep({ abilityScores, choice, onChange }: ASIStepProps) {
   const handleSplitSelect = (key: AbilityKey) => {
     if (abilityScores[key] >= 20) return;
 
-    if (splitAbility1 === key) {
-      setSplitAbility1(splitAbility2);
-      setSplitAbility2(null);
-      if (splitAbility2) onChange({ mode: "split", ability1: splitAbility2, ability2: splitAbility2 });
-      return;
-    }
-    if (splitAbility2 === key) {
-      setSplitAbility2(null);
-      if (splitAbility1) onChange({ mode: "split", ability1: splitAbility1, ability2: splitAbility1 });
-      return;
+    let next: AbilityKey[];
+    if (splitAbilities.includes(key)) {
+      next = splitAbilities.filter((ability) => ability !== key);
+    } else if (splitAbilities.length < 2) {
+      next = [...splitAbilities, key];
+    } else {
+      next = [splitAbilities[0], key];
     }
 
-    if (!splitAbility1) {
-      setSplitAbility1(key);
-    } else if (!splitAbility2) {
-      setSplitAbility2(key);
-      onChange({ mode: "split", ability1: splitAbility1, ability2: key });
+    setSplitAbilities(next);
+    if (next.length === 2 && next[0] !== next[1]) {
+      onChange({ mode: "split", ability1: next[0], ability2: next[1] });
     } else {
-      // Replace the second selection
-      setSplitAbility2(key);
-      onChange({ mode: "split", ability1: splitAbility1, ability2: key });
+      onChange(null);
     }
   };
 
   const getNewScore = (key: AbilityKey): number => {
     const current = abilityScores[key];
     if (mode === "single" && singleAbility === key) return Math.min(20, current + 2);
-    if (mode === "split" && (splitAbility1 === key || splitAbility2 === key))
+    if (mode === "split" && splitAbilities.includes(key))
       return Math.min(20, current + 1);
     return current;
   };
@@ -127,7 +118,7 @@ export function ASIStep({ abilityScores, choice, onChange }: ASIStepProps) {
           const isSelected =
             mode === "single"
               ? singleAbility === key
-              : splitAbility1 === key || splitAbility2 === key;
+              : splitAbilities.includes(key);
 
           return (
             <button
@@ -160,7 +151,7 @@ export function ASIStep({ abilityScores, choice, onChange }: ASIStepProps) {
       </div>
 
       {/* Validation hint */}
-      {mode === "split" && splitAbility1 && !splitAbility2 && (
+      {mode === "split" && splitAbilities.length === 1 && (
         <p className="text-xs text-muted-foreground text-center">
           Select one more ability to boost
         </p>

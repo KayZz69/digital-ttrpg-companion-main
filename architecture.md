@@ -53,3 +53,18 @@ Changing key names or stored JSON shape is a breaking change for existing local 
 - Combat Tracking: initiative ordering, HP updates, and condition tracking.
 - Dice Rolling: d4-d20 rolls, modifiers, advantage/disadvantage, history.
 - Session Journal: timestamped entries with filtering/tagging.
+
+## Mechanics Engine Notes (Phase 1.1 / 1.3)
+
+- Character progression uses `src/utils/progressionUtils.ts` for XP thresholds, HP gain, and ASI application.
+- Level-up ASI selections are validated before progression can continue:
+  - Single ASI requires a selectable ability below 20.
+  - Split ASI requires two distinct abilities, each below 20.
+  - Invalid split selections are ignored defensively in the utility layer.
+- Combat math uses `src/utils/combatMathUtils.ts` for attack/save/damage/concentration calculations.
+- Weapon proficiency matching enforces category correctness:
+  - `Simple weapons` applies only to simple weapons.
+  - `Martial weapons` applies only to martial weapons.
+- Combat participant cards surface spellcasting math when available:
+  - Spell attack bonus (`prof + casting mod`)
+  - Spell save DC (`8 + prof + casting mod`)

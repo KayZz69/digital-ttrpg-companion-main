@@ -395,6 +395,13 @@ describe("resolveWeaponStats", () => {
     expect(result!.damageBonus).toBe(2); // DEX +2
   });
 
+  it("does not grant simple weapon proficiency from 'Martial weapons' alone", () => {
+    mockGetWeaponById.mockReturnValue(shortbow as Weapon);
+    const bowItem = { ...longswordItem, sourceItemId: "shortbow", name: "Shortbow" };
+    const result = resolveWeaponStats(bowItem, baseAbilityScores, 2, ["Martial weapons"]);
+    expect(result!.attackBonus).toBe(2); // DEX +2, no proficiency
+  });
+
   it("excludes proficiency bonus when not proficient", () => {
     mockGetWeaponById.mockReturnValue(longsword as Weapon);
     const result = resolveWeaponStats(longswordItem, baseAbilityScores, 3, ["Simple weapons"]);

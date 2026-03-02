@@ -16,17 +16,14 @@ import {
   getNewMaxHP,
   applyASI,
   getHitDiceMax,
+  isValidASIChoice,
+  type ASIChoice,
 } from "@/utils/progressionUtils";
 import { HPGainStep } from "./HPGainStep";
 import { ASIStep } from "./ASIStep";
 import { Sparkles, TrendingUp, Shield } from "lucide-react";
 
 type WizardStep = "overview" | "hp" | "asi" | "confirm";
-
-type AbilityKey = keyof DnD5eCharacter["abilityScores"];
-type ASIChoice =
-  | { mode: "single"; ability: AbilityKey }
-  | { mode: "split"; ability1: AbilityKey; ability2: AbilityKey };
 
 interface LevelUpResult {
   newLevel: number;
@@ -45,8 +42,7 @@ interface LevelUpWizardProps {
 export function LevelUpWizard({ open, character, onClose, onConfirm }: LevelUpWizardProps) {
   const dnd = character.data as DnD5eCharacter;
   const newLevel = dnd.level + 1;
-  const classData = getClassByName(dnd.class);
-  const features = classData?.features ?? [];
+  const features = useMemo(() => getClassByName(dnd.class)?.features ?? [], [dnd.class]);
 
   const newProfBonus = getProficiencyBonus(newLevel);
   const oldProfBonus = getProficiencyBonus(dnd.level);
@@ -85,6 +81,10 @@ export function LevelUpWizard({ open, character, onClose, onConfirm }: LevelUpWi
   };
 
   const handleConfirm = () => {
+    if (hasASI && !isValidASIChoice(dnd.abilityScores, asiChoice)) {
+      return;
+    }
+
     const finalHP = rolledHP !== null && !useAverage ? rolledHP : hpGainPreview;
     const newAbilityScores = asiChoice
       ? applyASI(dnd.abilityScores, asiChoice)
@@ -106,7 +106,9 @@ export function LevelUpWizard({ open, character, onClose, onConfirm }: LevelUpWi
   };
 
   const canProceedFromCurrentStep = (): boolean => {
-    if (currentStep === "asi" && !asiChoice) return false;
+    if (currentStep === "asi") {
+      return isValidASIChoice(dnd.abilityScores, asiChoice);
+    }
     return true;
   };
 

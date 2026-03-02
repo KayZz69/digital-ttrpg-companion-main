@@ -33,6 +33,14 @@ export const XP_THRESHOLDS: readonly number[] = [
 
 export const MAX_LEVEL = 20;
 
+export type ASIChoice =
+  | { mode: "single"; ability: keyof DnD5eAbilityScores }
+  | {
+      mode: "split";
+      ability1: keyof DnD5eAbilityScores;
+      ability2: keyof DnD5eAbilityScores;
+    };
+
 /**
  * Returns the character level for a given XP total.
  * Always returns a value between 1 and 20.
@@ -168,14 +176,34 @@ export function getNewMaxHP(
  */
 export function applyASI(
   scores: DnD5eAbilityScores,
-  choice: { mode: "single"; ability: keyof DnD5eAbilityScores } | { mode: "split"; ability1: keyof DnD5eAbilityScores; ability2: keyof DnD5eAbilityScores }
+  choice: ASIChoice
 ): DnD5eAbilityScores {
   const updated = { ...scores };
   if (choice.mode === "single") {
     updated[choice.ability] = Math.min(20, updated[choice.ability] + 2);
   } else {
+    if (choice.ability1 === choice.ability2) {
+      return updated;
+    }
     updated[choice.ability1] = Math.min(20, updated[choice.ability1] + 1);
     updated[choice.ability2] = Math.min(20, updated[choice.ability2] + 1);
   }
   return updated;
+}
+
+/**
+ * Validates an ASI choice against the current ability scores.
+ */
+export function isValidASIChoice(
+  scores: DnD5eAbilityScores,
+  choice: ASIChoice | null
+): choice is ASIChoice {
+  if (!choice) return false;
+
+  if (choice.mode === "single") {
+    return scores[choice.ability] < 20;
+  }
+
+  if (choice.ability1 === choice.ability2) return false;
+  return scores[choice.ability1] < 20 && scores[choice.ability2] < 20;
 }

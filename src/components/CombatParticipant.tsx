@@ -20,6 +20,7 @@ import {
 import { useState, useEffect } from "react";
 import {
   rollAttack, rollDamage, rollSavingThrow, checkHit,
+  calcSpellAttackBonus, calcSpellSaveDC,
   type AttackRollResult, type DamageRollBreakdown, type SavingThrowResult,
 } from "@/utils/combatMathUtils";
 import { getAbilityModifier, formatModifier } from "@/lib/dndRules";
@@ -80,6 +81,7 @@ export const CombatParticipant = ({
   const [saveDC, setSaveDC] = useState("");
   const [saveProficient, setSaveProficient] = useState(false);
   const [saveResult, setSaveResult] = useState<SavingThrowResult | null>(null);
+  const [spellAttackResult, setSpellAttackResult] = useState<AttackRollResult | null>(null);
 
   //  Concentration state 
   const [showConcInput, setShowConcInput] = useState(false);
@@ -220,6 +222,30 @@ export const CombatParticipant = ({
       setConcSpellInput("");
       setShowConcInput(false);
     }
+  };
+
+  const spellcastingStats = (() => {
+    if (
+      !combatant.abilityScores ||
+      combatant.proficiencyBonus === undefined ||
+      !combatant.spellcastingAbility
+    ) {
+      return null;
+    }
+
+    const spellcastingMod = getAbilityModifier(
+      combatant.abilityScores[combatant.spellcastingAbility]
+    );
+    return {
+      ability: combatant.spellcastingAbility,
+      attackBonus: calcSpellAttackBonus(combatant.proficiencyBonus, spellcastingMod),
+      saveDC: calcSpellSaveDC(combatant.proficiencyBonus, spellcastingMod),
+    };
+  })();
+
+  const handleRollSpellAttack = () => {
+    if (!spellcastingStats) return;
+    setSpellAttackResult(rollAttack(spellcastingStats.attackBonus));
   };
 
   //  Rendering helpers 
@@ -605,6 +631,59 @@ export const CombatParticipant = ({
                     </span>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/*  Spellcasting panel  */}
+        {spellcastingStats && (
+          <div className="border-t pt-3 space-y-2">
+            <div className="flex items-center gap-1.5 text-sm font-medium">
+              <Zap className="w-3.5 h-3.5" />
+              Spellcasting
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded border bg-muted/60 p-2 text-xs">
+                <div className="text-muted-foreground">Spell Attack</div>
+                <div className="font-semibold">
+                  {formatModifier(spellcastingStats.attackBonus)}
+                </div>
+              </div>
+              <div className="rounded border bg-muted/60 p-2 text-xs">
+                <div className="text-muted-foreground">Save DC</div>
+                <div className="font-semibold">{spellcastingStats.saveDC}</div>
+              </div>
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              Ability: {ABILITY_ABBR[spellcastingStats.ability]}
+            </div>
+
+            <Button variant="outline" size="sm" className="w-full h-8" onClick={handleRollSpellAttack}>
+              Roll Spell Attack
+            </Button>
+
+            {spellAttackResult && (
+              <div
+                className={`text-sm rounded p-2 border font-mono ${
+                  spellAttackResult.isCrit
+                    ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-700 dark:text-yellow-300"
+                    : spellAttackResult.isFumble
+                      ? "bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400"
+                      : "bg-muted border-border"
+                }`}
+              >
+                {spellAttackResult.d20.roll}{" "}
+                {formatModifier(spellAttackResult.attackBonus)} = {spellAttackResult.total}
+                <span className="ml-2 font-semibold">
+                  {spellAttackResult.isCrit
+                    ? "CRITICAL HIT!"
+                    : spellAttackResult.isFumble
+                      ? "FUMBLE!"
+                      : "SPELL ATTACK"}
+                </span>
               </div>
             )}
           </div>

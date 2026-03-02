@@ -13,6 +13,7 @@ import {
   getNewFeaturesAtLevel,
   getNewMaxHP,
   applyASI,
+  isValidASIChoice,
   MAX_LEVEL,
 } from "./progressionUtils";
 import type { ClassFeature } from "@/data/types";
@@ -307,5 +308,74 @@ describe("applyASI", () => {
     const original = { ...baseScores };
     applyASI(baseScores, { mode: "single", ability: "strength" });
     expect(baseScores.strength).toBe(original.strength);
+  });
+
+  it("ignores invalid split choices where both abilities are the same", () => {
+    const result = applyASI(baseScores, {
+      mode: "split",
+      ability1: "strength",
+      ability2: "strength",
+    });
+    expect(result).toEqual(baseScores);
+  });
+});
+
+// --- isValidASIChoice ---
+describe("isValidASIChoice", () => {
+  const baseScores = {
+    strength: 14,
+    dexterity: 16,
+    constitution: 12,
+    intelligence: 10,
+    wisdom: 8,
+    charisma: 10,
+  };
+
+  it("returns false for null choices", () => {
+    expect(isValidASIChoice(baseScores, null)).toBe(false);
+  });
+
+  it("returns true for valid single choices", () => {
+    expect(
+      isValidASIChoice(baseScores, { mode: "single", ability: "strength" })
+    ).toBe(true);
+  });
+
+  it("returns false for single choices at max score", () => {
+    const maxed = { ...baseScores, strength: 20 };
+    expect(
+      isValidASIChoice(maxed, { mode: "single", ability: "strength" })
+    ).toBe(false);
+  });
+
+  it("returns true for valid split choices", () => {
+    expect(
+      isValidASIChoice(baseScores, {
+        mode: "split",
+        ability1: "strength",
+        ability2: "dexterity",
+      })
+    ).toBe(true);
+  });
+
+  it("returns false when split chooses the same ability twice", () => {
+    expect(
+      isValidASIChoice(baseScores, {
+        mode: "split",
+        ability1: "strength",
+        ability2: "strength",
+      })
+    ).toBe(false);
+  });
+
+  it("returns false when either split ability is maxed", () => {
+    const maxed = { ...baseScores, dexterity: 20 };
+    expect(
+      isValidASIChoice(maxed, {
+        mode: "split",
+        ability1: "strength",
+        ability2: "dexterity",
+      })
+    ).toBe(false);
   });
 });
