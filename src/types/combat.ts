@@ -65,6 +65,14 @@ export interface Condition {
   duration: number;
   /** Optional notes about the condition source or specifics */
   notes?: string;
+  /**
+   * When the duration decrements:
+   *   - "start": at the start of this combatant's turn
+   *   - "end":   at the end of this combatant's turn
+   *   - "round": at round boundary (legacy default)
+   * Defaults to "round" for backward compatibility.
+   */
+  timing?: "start" | "end" | "round";
 }
 
 /**
@@ -107,6 +115,8 @@ export interface Combatant {
   savingThrowProficiencies?: Record<string, boolean>;
   /** Resolved stats for the equipped mainHand weapon */
   equippedWeapon?: EquippedWeaponStats;
+  /** Exhaustion level (0–6). Level 6 = death. */
+  exhaustionLevel?: number;
 }
 
 /**

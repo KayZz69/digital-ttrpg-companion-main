@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Character, DnD5eCharacter } from "@/types/character";
-import { Combatant, CombatantType, Condition } from "@/types/combat";
+import { Combatant, CombatantType, Condition, ConditionType } from "@/types/combat";
 import { NPC } from "@/types/npc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -266,7 +266,8 @@ export const CombatTracker = () => {
 
   /**
    * Updates a combatant's current HP and syncs player HP to character data.
-   * For player combatants, persists HP changes to localStorage.
+   * Auto-adds unconscious+prone when HP reaches 0.
+   * Auto-removes unconscious when healed from 0 HP.
    * @param id - The combatant's UUID
    * @param newHP - The new current HP value
    */
@@ -275,9 +276,51 @@ export const CombatTracker = () => {
     const oldHP = combatant?.hitPoints.current ?? newHP;
     const damageTaken = Math.max(0, oldHP - newHP);
 
-    const updated = combatants.map((c) =>
-      c.id === id ? { ...c, hitPoints: { ...c.hitPoints, current: newHP } } : c
-    );
+    const updated = combatants.map((c) => {
+      if (c.id !== id) return c;
+
+      let nextConditions = [...(c.conditions || [])];
+
+      // Auto-add unconscious + prone when HP drops to 0
+      if (newHP === 0 && oldHP > 0) {
+        const hasUnconscious = nextConditions.some((cond) => cond.type === "unconscious");
+        const hasProne = nextConditions.some((cond) => cond.type === "prone");
+
+        if (!hasUnconscious) {
+          nextConditions.push({
+            id: crypto.randomUUID(),
+            type: "unconscious" as ConditionType,
+            duration: -1,
+            notes: "Auto-applied: HP reached 0",
+          });
+        }
+        if (!hasProne) {
+          nextConditions.push({
+            id: crypto.randomUUID(),
+            type: "prone" as ConditionType,
+            duration: -1,
+            notes: "Auto-applied: fell unconscious",
+          });
+        }
+
+        toast({
+          title: `${c.name} Knocked Out!`,
+          description: "Unconscious and Prone conditions applied automatically.",
+          variant: "destructive",
+        });
+      }
+
+      // Auto-remove unconscious when healed from 0 HP
+      if (oldHP === 0 && newHP > 0) {
+        nextConditions = nextConditions.filter((cond) => cond.type !== "unconscious");
+        toast({
+          title: `${c.name} Regains Consciousness`,
+          description: "Unconscious condition removed. (Prone remains — use an action to stand.)",
+        });
+      }
+
+      return { ...c, hitPoints: { ...c.hitPoints, current: newHP }, conditions: nextConditions };
+    });
     setCombatants(updated);
 
     // Trigger concentration check when a concentrating combatant takes damage
@@ -327,24 +370,94 @@ export const CombatTracker = () => {
   };
 
   /**
-   * Decrements duration of all conditions by 1 round.
+   * Updates the exhaustion level for a specific combatant.
+   * Shows a death alert when reaching level 6.
+   * @param id - The combatant's UUID
+   * @param level - The new exhaustion level (0–6)
+   */
+  const updateCombatantExhaustion = (id: string, level: number) => {
+    const clampedLevel = Math.max(0, Math.min(6, level));
+    const updated = combatants.map((c) =>
+      c.id === id ? { ...c, exhaustionLevel: clampedLevel } : c
+    );
+    setCombatants(updated);
+
+    const combatant = combatants.find((c) => c.id === id);
+    if (clampedLevel === 6 && combatant) {
+      toast({
+        title: `☠️ ${combatant.name} Dies from Exhaustion!`,
+        description: "Exhaustion has reached level 6 — the creature dies.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  /**
+   * Decrements per-turn condition durations for a specific combatant.
+   * Toasts when conditions expire.
+   * @param combatantId - UUID of the combatant
+   * @param timing - "start" or "end" indicating which turn phase
+   */
+  const decrementPerTurnConditions = (combatantId: string, timing: "start" | "end") => {
+    setCombatants((prev) =>
+      prev.map((c) => {
+        if (c.id !== combatantId || !c.conditions || c.conditions.length === 0) return c;
+
+        const expired: string[] = [];
+        const updatedConditions = c.conditions
+          .map((cond) => {
+            if (cond.duration === -1) return cond; // Indefinite
+            if ((cond.timing ?? "round") !== timing) return cond; // Not this phase
+            const newDuration = cond.duration - 1;
+            if (newDuration === 0) expired.push(cond.type);
+            return { ...cond, duration: newDuration };
+          })
+          .filter((cond) => cond.duration !== 0);
+
+        if (expired.length > 0) {
+          toast({
+            title: `Condition${expired.length > 1 ? "s" : ""} Expired`,
+            description: `${c.name}: ${expired.join(", ")} wore off.`,
+          });
+        }
+
+        return { ...c, conditions: updatedConditions };
+      })
+    );
+  };
+
+  /**
+   * Decrements duration of conditions with "round" timing (legacy) by 1.
    * Removes conditions that reach 0 duration.
    * Conditions with duration -1 (indefinite) are unchanged.
    */
-  const decrementConditionDurations = () => {
-    const updated = combatants.map((combatant) => {
-      if (!combatant.conditions || combatant.conditions.length === 0) return combatant;
+  const decrementRoundConditions = () => {
+    setCombatants((prev) =>
+      prev.map((combatant) => {
+        if (!combatant.conditions || combatant.conditions.length === 0) return combatant;
 
-      const updatedConditions = combatant.conditions
-        .map((condition) => {
-          if (condition.duration === -1) return condition; // Indefinite
-          return { ...condition, duration: condition.duration - 1 };
-        })
-        .filter((condition) => condition.duration !== 0); // Remove expired
+        const expired: string[] = [];
+        const updatedConditions = combatant.conditions
+          .map((condition) => {
+            if (condition.duration === -1) return condition; // Indefinite
+            const timing = condition.timing ?? "round";
+            if (timing !== "round") return condition; // Handled per-turn
+            const newDuration = condition.duration - 1;
+            if (newDuration === 0) expired.push(condition.type);
+            return { ...condition, duration: newDuration };
+          })
+          .filter((condition) => condition.duration !== 0);
 
-      return { ...combatant, conditions: updatedConditions };
-    });
-    setCombatants(updated);
+        if (expired.length > 0) {
+          toast({
+            title: `Condition${expired.length > 1 ? "s" : ""} Expired`,
+            description: `${combatant.name}: ${expired.join(", ")} wore off.`,
+          });
+        }
+
+        return { ...combatant, conditions: updatedConditions };
+      })
+    );
   };
 
   /**
@@ -376,21 +489,33 @@ export const CombatTracker = () => {
 
   /**
    * Advances combat to the next turn.
-   * Increments round counter when returning to start.
-   * Triggers condition duration decrement at round end.
+   * Decrements per-turn conditions ("end" for outgoing, "start" for incoming).
+   * Increments round counter and decrements round-based conditions at round boundary.
    */
   const nextTurn = () => {
     if (combatants.length === 0) return;
 
+    // Decrement "end of turn" conditions for the combatant whose turn is ending
+    const endingCombatant = combatants[currentTurn];
+    if (endingCombatant) {
+      decrementPerTurnConditions(endingCombatant.id, "end");
+    }
+
     const nextIndex = (currentTurn + 1) % combatants.length;
 
     if (nextIndex === 0) {
-      decrementConditionDurations();
+      decrementRoundConditions();
       setRound(round + 1);
       toast({
         title: `Round ${round + 1}`,
-        description: "A new round has begun! Conditions updated.",
+        description: "A new round has begun!",
       });
+    }
+
+    // Decrement "start of turn" conditions for the combatant whose turn is beginning
+    const startingCombatant = combatants[nextIndex];
+    if (startingCombatant) {
+      decrementPerTurnConditions(startingCombatant.id, "start");
     }
 
     setCurrentTurn(nextIndex);
@@ -683,6 +808,7 @@ export const CombatTracker = () => {
                 onRemove={removeCombatant}
                 onUpdateConditions={updateCombatantConditions}
                 onConcentrationChange={handleConcentrationChange}
+                onUpdateExhaustion={updateCombatantExhaustion}
               />
             ))}
           </div>
@@ -727,11 +853,10 @@ export const CombatTracker = () => {
 
             {concentrationRollResult && (
               <div
-                className={`rounded p-3 text-sm ${
-                  concentrationRollResult.success
-                    ? "bg-green-500/10 border border-green-500/20"
-                    : "bg-red-500/10 border border-red-500/20"
-                }`}
+                className={`rounded p-3 text-sm ${concentrationRollResult.success
+                  ? "bg-green-500/10 border border-green-500/20"
+                  : "bg-red-500/10 border border-red-500/20"
+                  }`}
               >
                 <div>
                   Roll: {concentrationRollResult.roll} {formatModifier(concentrationRollResult.bonus)} ={" "}

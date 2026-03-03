@@ -1,6 +1,7 @@
 /**
  * @fileoverview Combat Participant component for displaying combatants in the initiative order.
- * Provides HP management, condition tracking, attack rolls, saving throws, and concentration tracking.
+ * Provides HP management, condition tracking with mechanical effects, attack rolls,
+ * saving throws, concentration tracking, and exhaustion management.
  */
 
 import { Combatant, Condition, ConditionType } from "@/types/combat";
@@ -15,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import {
   Shield, Heart, Skull, Trash2, User, UserPlus, Plus, X, AlertCircle,
-  ChevronDown, Swords, Dices, Zap,
+  ChevronDown, Swords, Dices, Zap, Minus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -24,6 +25,13 @@ import {
   type AttackRollResult, type DamageRollBreakdown, type SavingThrowResult,
 } from "@/utils/combatMathUtils";
 import { getAbilityModifier, formatModifier } from "@/lib/dndRules";
+import {
+  getConditionBadgeClasses,
+  getEffectSummary,
+  getNetAttackModifier,
+  getNetSaveModifier,
+  getExhaustionEffects,
+} from "@/utils/conditionUtils";
 
 //  Ability abbreviations 
 
@@ -48,6 +56,8 @@ interface CombatParticipantProps {
   onUpdateConditions: (id: string, conditions: Condition[]) => void;
   /** Called when concentration is set or cleared on this combatant */
   onConcentrationChange?: (id: string, spellName: string | undefined) => void;
+  /** Called when exhaustion level changes */
+  onUpdateExhaustion?: (id: string, level: number) => void;
 }
 
 //  Component 
@@ -59,6 +69,7 @@ export const CombatParticipant = ({
   onRemove,
   onUpdateConditions,
   onConcentrationChange,
+  onUpdateExhaustion,
 }: CombatParticipantProps) => {
 
   //  HP / condition state 
@@ -67,6 +78,7 @@ export const CombatParticipant = ({
   const [newCondition, setNewCondition] = useState<ConditionType>("poisoned");
   const [conditionDuration, setConditionDuration] = useState("1");
   const [conditionNotes, setConditionNotes] = useState("");
+  const [conditionTiming, setConditionTiming] = useState<"start" | "end" | "round">("round");
 
   //  Attack roll state 
   const [showAttack, setShowAttack] = useState(false);
@@ -87,12 +99,28 @@ export const CombatParticipant = ({
   const [showConcInput, setShowConcInput] = useState(false);
   const [concSpellInput, setConcSpellInput] = useState("");
 
+  //  Derived condition data 
+  const activeConditionTypes = (combatant.conditions || []).map((c) => c.type);
+  const exhaustionLevel = combatant.exhaustionLevel ?? 0;
+
+  // Compute condition-based attack modifier for auto-setting attack mode
+  const conditionAttackMod = getNetAttackModifier(activeConditionTypes, exhaustionLevel);
+  const effectSummary = getEffectSummary(activeConditionTypes, exhaustionLevel);
+  const exhaustionInfo = getExhaustionEffects(exhaustionLevel);
+
   // Auto-detect saving throw proficiency when ability changes
   useEffect(() => {
     if (combatant.savingThrowProficiencies) {
       setSaveProficient(combatant.savingThrowProficiencies[saveAbility] ?? false);
     }
   }, [saveAbility, combatant.savingThrowProficiencies]);
+
+  // Auto-set attack mode based on condition modifiers
+  useEffect(() => {
+    if (conditionAttackMod === "advantage") setAttackMode("advantage");
+    else if (conditionAttackMod === "disadvantage") setAttackMode("disadvantage");
+    else setAttackMode("normal");
+  }, [conditionAttackMod]);
 
   // Reset attack result when collapsing
   useEffect(() => {
@@ -147,11 +175,18 @@ export const CombatParticipant = ({
   const addCondition = () => {
     const duration = parseInt(conditionDuration);
     if (isNaN(duration) || duration < -1) return;
-    const condition = { id: crypto.randomUUID(), type: newCondition, duration, notes: conditionNotes || undefined };
+    const condition: Condition = {
+      id: crypto.randomUUID(),
+      type: newCondition,
+      duration,
+      notes: conditionNotes || undefined,
+      timing: conditionTiming,
+    };
     onUpdateConditions(combatant.id, [...(combatant.conditions || []), condition]);
     setNewCondition("poisoned");
     setConditionDuration("1");
     setConditionNotes("");
+    setConditionTiming("round");
     setShowConditionDialog(false);
   };
 
@@ -209,6 +244,14 @@ export const CombatParticipant = ({
     if (!combatant.abilityScores) return;
     const dc = parseInt(saveDC);
     if (isNaN(dc) || dc <= 0) return;
+
+    // Check for auto-fail from conditions
+    const saveMod = getNetSaveModifier(activeConditionTypes, saveAbility, exhaustionLevel);
+    if (saveMod === "auto-fail") {
+      setSaveResult({ roll: 0, bonus: 0, total: 0, dc, success: false });
+      return;
+    }
+
     const abilityScore = combatant.abilityScores[saveAbility];
     const abilityMod = getAbilityModifier(abilityScore);
     const profBonus = combatant.proficiencyBonus ?? 2;
@@ -246,6 +289,15 @@ export const CombatParticipant = ({
   const handleRollSpellAttack = () => {
     if (!spellcastingStats) return;
     setSpellAttackResult(rollAttack(spellcastingStats.attackBonus));
+  };
+
+  //  Timing label helper 
+  const getTimingLabel = (timing?: "start" | "end" | "round"): string => {
+    switch (timing) {
+      case "start": return "↗";
+      case "end": return "↘";
+      default: return "";
+    }
   };
 
   //  Rendering helpers 
@@ -299,17 +351,22 @@ export const CombatParticipant = ({
           </Button>
         </div>
 
-        {/*  Conditions  */}
+        {/*  Conditions (color-coded by severity)  */}
         {combatant.conditions && combatant.conditions.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {combatant.conditions.map((condition) => (
               <Badge
                 key={condition.id}
                 variant="secondary"
-                className="text-xs gap-1 pr-1 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                className={`text-xs gap-1 pr-1 ${getConditionBadgeClasses(condition.type)}`}
               >
                 <AlertCircle className="w-3 h-3" />
                 {condition.type}
+                {getTimingLabel(condition.timing) && (
+                  <span className="opacity-60" title={
+                    condition.timing === "start" ? "Decrements at start of turn" : "Decrements at end of turn"
+                  }>{getTimingLabel(condition.timing)}</span>
+                )}
                 {condition.duration > 0 && ` (${condition.duration})`}
                 {condition.duration === -1 && " (inf)"}
                 <Button
@@ -322,6 +379,59 @@ export const CombatParticipant = ({
                 </Button>
               </Badge>
             ))}
+          </div>
+        )}
+
+        {/*  Condition Effect Summary  */}
+        {effectSummary.length > 0 && (
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground bg-muted/40 rounded px-2 py-1">
+            {effectSummary.map((s, i) => (
+              <span key={i} className="whitespace-nowrap">{s.icon} {s.label}</span>
+            ))}
+          </div>
+        )}
+
+        {/*  Exhaustion Controls  */}
+        {onUpdateExhaustion && (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-medium text-muted-foreground">Exhaustion:</span>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => onUpdateExhaustion(combatant.id, exhaustionLevel - 1)}
+                disabled={exhaustionLevel <= 0}
+              >
+                <Minus className="w-3 h-3" />
+              </Button>
+              <span
+                className={`font-bold w-4 text-center ${exhaustionLevel === 0
+                    ? "text-muted-foreground"
+                    : exhaustionLevel <= 2
+                      ? "text-amber-600 dark:text-amber-400"
+                      : exhaustionLevel <= 4
+                        ? "text-orange-600 dark:text-orange-400"
+                        : "text-red-600 dark:text-red-400"
+                  }`}
+              >
+                {exhaustionLevel}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => onUpdateExhaustion(combatant.id, exhaustionLevel + 1)}
+                disabled={exhaustionLevel >= 6}
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
+            </div>
+            {exhaustionInfo && (
+              <span className="text-muted-foreground truncate" title={exhaustionInfo.description}>
+                {exhaustionInfo.description}
+              </span>
+            )}
           </div>
         )}
 
@@ -422,15 +532,29 @@ export const CombatParticipant = ({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Duration (rounds)</Label>
-                <Input
-                  type="number"
-                  placeholder="1"
-                  value={conditionDuration}
-                  onChange={(e) => setConditionDuration(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Use -1 for indefinite duration</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Duration (rounds)</Label>
+                  <Input
+                    type="number"
+                    placeholder="1"
+                    value={conditionDuration}
+                    onChange={(e) => setConditionDuration(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Use -1 for indefinite duration</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Timing</Label>
+                  <Select value={conditionTiming} onValueChange={(v: "start" | "end" | "round") => setConditionTiming(v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="round">Each round (legacy)</SelectItem>
+                      <SelectItem value="start">Start of turn</SelectItem>
+                      <SelectItem value="end">End of turn</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">When the duration decrements</p>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Notes (optional)</Label>
@@ -460,6 +584,14 @@ export const CombatParticipant = ({
               <span className="flex items-center gap-1.5 text-sm font-medium">
                 <Swords className="w-3.5 h-3.5" />
                 Attack Roll
+                {conditionAttackMod !== "normal" && (
+                  <span className={`text-xs font-normal ${conditionAttackMod === "advantage"
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                    }`}>
+                    ({conditionAttackMod === "advantage" ? "Adv" : "Dis"} from conditions)
+                  </span>
+                )}
               </span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAttack ? "rotate-180" : ""}`} />
             </Button>
@@ -583,16 +715,25 @@ export const CombatParticipant = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {ABILITY_KEYS.map((a) => (
-                        <SelectItem key={a} value={a}>
-                          {ABILITY_ABBR[a]}
-                          {combatant.abilityScores && (
-                            <span className="ml-1 text-muted-foreground text-xs">
-                              ({formatModifier(getAbilityModifier(combatant.abilityScores[a]))})
-                            </span>
-                          )}
-                        </SelectItem>
-                      ))}
+                      {ABILITY_KEYS.map((a) => {
+                        const saveMod = getNetSaveModifier(activeConditionTypes, a, exhaustionLevel);
+                        return (
+                          <SelectItem key={a} value={a}>
+                            {ABILITY_ABBR[a]}
+                            {combatant.abilityScores && (
+                              <span className="ml-1 text-muted-foreground text-xs">
+                                ({formatModifier(getAbilityModifier(combatant.abilityScores[a]))})
+                              </span>
+                            )}
+                            {saveMod === "auto-fail" && (
+                              <span className="ml-1 text-red-500 text-xs font-bold">AUTO-FAIL</span>
+                            )}
+                            {saveMod === "disadvantage" && (
+                              <span className="ml-1 text-amber-500 text-xs">Dis</span>
+                            )}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   <Input
@@ -612,20 +753,44 @@ export const CombatParticipant = ({
                     Prof
                   </Button>
                 </div>
+                {/* Save modifier indicator from conditions */}
+                {(() => {
+                  const saveMod = getNetSaveModifier(activeConditionTypes, saveAbility, exhaustionLevel);
+                  if (saveMod === "auto-fail") {
+                    return (
+                      <div className="text-xs font-bold text-red-500 bg-red-500/10 rounded px-2 py-1">
+                        ❌ Auto-fails {ABILITY_ABBR[saveAbility]} saves (from conditions)
+                      </div>
+                    );
+                  }
+                  if (saveMod === "disadvantage") {
+                    return (
+                      <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded px-2 py-1">
+                        ⚠️ Disadvantage on {ABILITY_ABBR[saveAbility]} saves (from conditions)
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 <Button size="sm" className="w-full h-8" onClick={handleRollSave} disabled={!saveDC}>
                   Roll Save
                 </Button>
 
                 {saveResult && (
                   <div
-                    className={`text-sm rounded p-2 border font-mono ${
-                      saveResult.success
+                    className={`text-sm rounded p-2 border font-mono ${saveResult.success
                         ? "bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-300"
                         : "bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400"
-                    }`}
+                      }`}
                   >
-                    {saveResult.roll} {formatModifier(saveResult.bonus)} = {saveResult.total} vs DC{" "}
-                    {saveResult.dc}
+                    {saveResult.roll === 0 && !saveResult.success ? (
+                      <span className="font-bold">AUTO-FAIL</span>
+                    ) : (
+                      <>
+                        {saveResult.roll} {formatModifier(saveResult.bonus)} = {saveResult.total} vs DC{" "}
+                        {saveResult.dc}
+                      </>
+                    )}
                     <span className="ml-2 font-semibold">
                       {saveResult.success ? "SUCCESS" : "FAILED"}
                     </span>
@@ -667,13 +832,12 @@ export const CombatParticipant = ({
 
             {spellAttackResult && (
               <div
-                className={`text-sm rounded p-2 border font-mono ${
-                  spellAttackResult.isCrit
+                className={`text-sm rounded p-2 border font-mono ${spellAttackResult.isCrit
                     ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-700 dark:text-yellow-300"
                     : spellAttackResult.isFumble
                       ? "bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400"
                       : "bg-muted border-border"
-                }`}
+                  }`}
               >
                 {spellAttackResult.d20.roll}{" "}
                 {formatModifier(spellAttackResult.attackBonus)} = {spellAttackResult.total}
