@@ -1,14 +1,18 @@
 import {
   getAllAdventuringGear,
   getAllArmor,
+  getAllBackgrounds,
   getAllClasses,
   getAllRaces,
   getAllSpells,
+  getStartingEquipmentChoices as getClassEquipmentChoicesFromData,
   getAllWeapons,
   type AdventuringGear,
   type Armor,
+  type Background,
   type Class,
   type Race,
+  type StartingEquipmentChoice,
   type Spell,
   type Weapon,
 } from "@/data";
@@ -103,6 +107,42 @@ export function getClassSavingThrowProficiencies(className: string): SavingThrow
 
 export function getClassSkillChoices(className: string): { choose: number; from: string[] } {
   return getClassByName(className)?.skillChoices ?? { choose: 0, from: [] };
+}
+
+export function getClassExpertiseSelectionCount(className: string, level: number): number {
+  const cls = getClassByName(className);
+  if (!cls || level <= 0) {
+    return 0;
+  }
+
+  return cls.features
+    .filter((feature) => feature.level <= level && feature.name.toLowerCase().includes("expertise"))
+    .reduce((count, feature) => {
+      const description = feature.description.toLowerCase();
+      const numericMatch = description.match(/choose\s+(\d+)/);
+      if (numericMatch) {
+        return count + Number(numericMatch[1]);
+      }
+      if (description.includes("two")) {
+        return count + 2;
+      }
+      return count + 1;
+    }, 0);
+}
+
+export function getClassStartingEquipmentChoices(className: string): StartingEquipmentChoice[] {
+  const cls = getClassByName(className);
+  if (!cls) {
+    return [];
+  }
+
+  return cls.startingEquipment && cls.startingEquipment.length > 0
+    ? cls.startingEquipment
+    : getClassEquipmentChoicesFromData(cls.id);
+}
+
+export function getAllBackgroundDefinitions(): Background[] {
+  return getAllBackgrounds();
 }
 
 export function getClassSpells(className: string): Spell[] {

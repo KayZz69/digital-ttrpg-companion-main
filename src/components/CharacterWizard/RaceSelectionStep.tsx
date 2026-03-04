@@ -1,8 +1,22 @@
 import { DnD5eCharacter } from "@/types/character";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getAllRaces } from "@/data/races";
 import { Check } from "lucide-react";
+import {
+  ABILITY_KEYS,
+  buildRaceAbilityBonuses,
+  hasRequiredRaceAbilityChoices,
+  parseAbilityScoreIncrease,
+} from "@/lib/characterCreationRules";
 
 interface RaceSelectionStepProps {
   character: Partial<DnD5eCharacter>;
@@ -11,6 +25,40 @@ interface RaceSelectionStepProps {
 
 export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStepProps) => {
   const races = getAllRaces();
+  const selectedRace = races.find((race) => race.name === character.race);
+  const parsedIncrease = parseAbilityScoreIncrease(selectedRace?.abilityScoreIncrease);
+
+  const handleRaceSelect = (raceName: string, raceId: string, abilityScoreIncrease?: string) => {
+    const parsed = parseAbilityScoreIncrease(abilityScoreIncrease);
+    const existingChoices = character.race === raceName ? character.raceAbilityChoices || [] : [];
+    const nextChoices =
+      existingChoices.length > 0
+        ? existingChoices
+        : parsed.choiceBonuses.map((_, index) => ABILITY_KEYS[index]);
+    const bonuses = buildRaceAbilityBonuses(abilityScoreIncrease, nextChoices);
+
+    setCharacter({
+      ...character,
+      race: raceName,
+      raceId,
+      raceAbilityChoices: nextChoices,
+      raceAbilityBonuses: bonuses,
+    });
+  };
+
+  const handleRaceChoiceChange = (index: number, value: keyof DnD5eCharacter["abilityScores"]) => {
+    if (!selectedRace) {
+      return;
+    }
+    const nextChoices = [...(character.raceAbilityChoices || [])];
+    nextChoices[index] = value;
+    const bonuses = buildRaceAbilityBonuses(selectedRace.abilityScoreIncrease, nextChoices);
+    setCharacter({
+      ...character,
+      raceAbilityChoices: nextChoices,
+      raceAbilityBonuses: bonuses,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -35,7 +83,7 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
                   ? "border-primary border-2 bg-primary/5"
                   : "border-border hover:border-primary/50"
               }`}
-              onClick={() => setCharacter({ ...character, race: race.name, raceId: race.id })}
+              onClick={() => handleRaceSelect(race.name, race.id, race.abilityScoreIncrease)}
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -76,6 +124,13 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
                     </p>
                   </div>
                 )}
+                {race.abilityScoreIncrease && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Ability Scores: {race.abilityScoreIncrease}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
@@ -84,10 +139,55 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
 
       {character.race && (
         <Card className="border-primary/50 bg-primary/5">
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 space-y-4">
             <p className="text-sm text-muted-foreground">
               Selected: <span className="font-semibold text-foreground">{character.race}</span>
             </p>
+            {selectedRace && parsedIncrease.choiceBonuses.length > 0 && (
+              <div className="space-y-3">
+                {parsedIncrease.choiceBonuses.map((bonus, index) => {
+                  const firstChoice = character.raceAbilityChoices?.[0];
+                  const chosen = character.raceAbilityChoices?.[index];
+                  const options = ABILITY_KEYS.filter(
+                    (ability) =>
+                      !parsedIncrease.requireDistinctChoices ||
+                      index === 0 ||
+                      !firstChoice ||
+                      ability !== firstChoice
+                  );
+                  return (
+                    <div key={`${selectedRace.id}-choice-${index}`} className="space-y-2">
+                      <Label className="text-sm">Choose ability for +{bonus}</Label>
+                      <Select
+                        value={chosen}
+                        onValueChange={(value) =>
+                          handleRaceChoiceChange(index, value as keyof DnD5eCharacter["abilityScores"])
+                        }
+                      >
+                        <SelectTrigger className="w-full md:w-[280px]">
+                          <SelectValue placeholder="Select an ability" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {options.map((ability) => (
+                            <SelectItem key={ability} value={ability}>
+                              {ability.charAt(0).toUpperCase() + ability.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+                {!hasRequiredRaceAbilityChoices(
+                  selectedRace.abilityScoreIncrease,
+                  character.raceAbilityChoices || []
+                ) && (
+                  <p className="text-sm text-destructive">
+                    Choose valid abilities for all race bonus selections before continuing.
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

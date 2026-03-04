@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getClassByName, getClassSavingThrowKeys } from "@/lib/dndCompendium";
 import { formatModifier, getAbilityModifier, getProficiencyBonus } from "@/lib/dndRules";
+import { applyAbilityBonuses } from "@/lib/characterCreationRules";
 import { CheckCircle2 } from "lucide-react";
 
 interface SavingThrowsStepProps {
@@ -15,7 +16,10 @@ interface SavingThrowsStepProps {
 
 export const SavingThrowsStep = ({ character }: SavingThrowsStepProps) => {
   const savingThrows = character.savingThrows || {};
-  const abilityScores = character.abilityScores!;
+  const abilityScores = applyAbilityBonuses(
+    character.abilityScores!,
+    character.raceAbilityBonuses
+  );
   const level = character.level || 1;
 
   const selectedClass = getClassByName(character.class || "");

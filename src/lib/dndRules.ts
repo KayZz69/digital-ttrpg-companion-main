@@ -77,12 +77,25 @@ const KNOWN_SPELL_LIMITS: Record<string, number[]> = {
   sorcerer: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15],
   warlock: [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
 };
+const CANTRIP_LIMITS: Record<string, number[]> = {
+  bard: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+  cleric: [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+  druid: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+  paladin: Array(20).fill(0),
+  ranger: Array(20).fill(0),
+  sorcerer: [4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+  warlock: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+  wizard: [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+};
 
 export type SpellcastingRuleMode = "none" | "prepared" | "known";
 
 export interface SpellSelectionState {
   mode: SpellcastingRuleMode;
   label: "Prepared spells" | "Known spells" | "Spells";
+  maxCantrips: number | null;
+  currentCantrips: number;
+  remainingCantrips: number | null;
   maxLeveledSpells: number | null;
   currentLeveledSpells: number;
   remainingLeveledSpells: number | null;
@@ -119,6 +132,15 @@ const getPreparedLeveledLimit = (
   return Math.max(1, level + abilityModifier);
 };
 
+export function getMaxCantrips(className: string, level: number): number | null {
+  const normalizedLevel = clampLevel(level);
+  const counts = CANTRIP_LIMITS[className.trim().toLowerCase()];
+  if (!counts) {
+    return null;
+  }
+  return counts[normalizedLevel - 1] ?? null;
+}
+
 export function getSpellcastingRuleMode(className: string): SpellcastingRuleMode {
   const lower = className.trim().toLowerCase();
   if (!lower || !isSpellcastingClass(className)) {
@@ -141,8 +163,10 @@ export function getSpellSelectionState(
 ): SpellSelectionState {
   const mode = getSpellcastingRuleMode(className);
   const normalizedLevel = clampLevel(level);
+  const currentCantrips = spells.filter((spell) => spell.level === 0).length;
   const currentLeveledSpells = spells.filter((spell) => spell.level > 0).length;
   const label = toRuleLabel(mode);
+  const maxCantrips = mode === "none" ? 0 : getMaxCantrips(className, normalizedLevel);
 
   let maxLeveledSpells: number | null = null;
   if (mode === "known") {
@@ -158,15 +182,22 @@ export function getSpellSelectionState(
 
   const remainingLeveledSpells =
     maxLeveledSpells === null ? null : Math.max(maxLeveledSpells - currentLeveledSpells, 0);
+  const remainingCantrips =
+    maxCantrips === null ? null : Math.max(maxCantrips - currentCantrips, 0);
 
   return {
     mode,
     label,
+    maxCantrips,
+    currentCantrips,
+    remainingCantrips,
     maxLeveledSpells,
     currentLeveledSpells,
     remainingLeveledSpells,
     isAtLimit: maxLeveledSpells !== null && currentLeveledSpells >= maxLeveledSpells,
-    isOverLimit: maxLeveledSpells !== null && currentLeveledSpells > maxLeveledSpells,
+    isOverLimit:
+      (maxLeveledSpells !== null && currentLeveledSpells > maxLeveledSpells) ||
+      (maxCantrips !== null && currentCantrips > maxCantrips),
   };
 }
 
@@ -187,7 +218,21 @@ export function validateSpellSelection(
     };
   }
 
-  if (candidateSpellLevel <= 0 || state.maxLeveledSpells === null) {
+  if (candidateSpellLevel <= 0) {
+    if (state.maxCantrips !== null && state.currentCantrips >= state.maxCantrips) {
+      return {
+        ...state,
+        canAdd: false,
+        reason: `Cantrip limit reached (${state.currentCantrips}/${state.maxCantrips}).`,
+      };
+    }
+    return {
+      ...state,
+      canAdd: true,
+    };
+  }
+
+  if (state.maxLeveledSpells === null) {
     return {
       ...state,
       canAdd: true,

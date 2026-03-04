@@ -19,6 +19,7 @@ import {
   getSpellSelectionState,
   validateSpellSelection,
 } from "@/lib/dndRules";
+import { applyAbilityBonuses } from "@/lib/characterCreationRules";
 
 interface SpellSelectionStepProps {
   character: Partial<DnD5eCharacter>;
@@ -50,9 +51,12 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
   const highestSlotLevel = getHighestSlotLevel(slotTemplate);
   const classSpells = getClassSpells(className);
   const spellcastingAbility = getClassSpellcastingAbility(className);
+  const effectiveAbilityScores = character.abilityScores
+    ? applyAbilityBonuses(character.abilityScores, character.raceAbilityBonuses)
+    : undefined;
   const spellcastingScore =
-    spellcastingAbility && character.abilityScores
-      ? character.abilityScores[spellcastingAbility] || 10
+    spellcastingAbility && effectiveAbilityScores
+      ? effectiveAbilityScores[spellcastingAbility] || 10
       : 10;
   const spellSelectionState = getSpellSelectionState(
     className,
@@ -130,6 +134,8 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
               </CardTitle>
               <CardDescription>
                 Showing {className} spells up to {levelLabel(highestSlotLevel)} for level {level}
+                {spellSelectionState.maxCantrips !== null &&
+                  ` | Cantrips: ${spellSelectionState.currentCantrips}/${spellSelectionState.maxCantrips}`}
                 {spellSelectionState.maxLeveledSpells !== null &&
                   ` | ${spellSelectionState.label}: ${spellSelectionState.currentLeveledSpells}/${spellSelectionState.maxLeveledSpells} leveled`}
               </CardDescription>
@@ -140,7 +146,7 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
         <CardContent className="space-y-4">
           {spellSelectionState.isOverLimit && (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {spellSelectionState.label} are over the class limit. Remove leveled spells to continue.
+              Spell selections exceed class limits. Remove cantrips or leveled spells to continue.
             </p>
           )}
           <Input
@@ -153,11 +159,17 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
             <div className="space-y-2">
               {filteredSpells.map((spell) => {
                 const checked = selectedIds.has(spell.id);
-                const disabledByLimit =
+                const cantripLimitReached =
+                  !checked &&
+                  spell.level === 0 &&
+                  spellSelectionState.maxCantrips !== null &&
+                  spellSelectionState.currentCantrips >= spellSelectionState.maxCantrips;
+                const leveledLimitReached =
                   !checked &&
                   spell.level > 0 &&
                   spellSelectionState.maxLeveledSpells !== null &&
                   spellSelectionState.currentLeveledSpells >= spellSelectionState.maxLeveledSpells;
+                const disabledByLimit = cantripLimitReached || leveledLimitReached;
                 return (
                   <label
                     key={spell.id}

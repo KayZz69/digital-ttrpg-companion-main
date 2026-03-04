@@ -34,6 +34,18 @@ Storage keys:
 
 Changing key names or stored JSON shape is a breaking change for existing local data.
 
+## Character Creation Rules Baseline
+
+- Baseline: **2024 PHB-oriented class/race dataset** (matches current `src/data/classes.ts` and `src/data/races.ts` content).
+- Rules enforcement in the wizard is centralized across:
+  - `src/lib/dndRules.ts` for spell slots, known/prepared limits, and cantrip caps.
+  - `src/lib/characterCreationRules.ts` for race ability-score bonus parsing/application.
+  - `src/lib/dndCompendium.ts` helper selectors for class expertise and starting equipment packages.
+- Character creation step order:
+  - Basic Info -> Race -> Class -> Background -> Abilities -> Skills -> Saves -> Spells (casters only) -> Equipment -> Review
+- Current intentional deviation:
+  - Starting equipment package data is a curated rules-safe subset represented in `src/data/startingEquipment.ts`; gold-buy remains available as an alternative mode.
+
 ## Layer Structure
 
 | Layer | Path | Purpose |

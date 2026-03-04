@@ -3,6 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { User, Shield, Sparkles, Scroll } from "lucide-react";
+import { applyAbilityBonuses } from "@/lib/characterCreationRules";
+import { getClassSpellcastingAbility } from "@/lib/dndCompendium";
+import { getSpellSelectionState } from "@/lib/dndRules";
 
 interface ReviewStepProps {
   character: Partial<DnD5eCharacter>;
@@ -14,6 +17,27 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
     const mod = Math.floor((score - 10) / 2);
     return mod >= 0 ? `+${mod}` : `${mod}`;
   };
+  const effectiveAbilityScores = applyAbilityBonuses(
+    (character.abilityScores || {
+      strength: 10,
+      dexterity: 10,
+      constitution: 10,
+      intelligence: 10,
+      wisdom: 10,
+      charisma: 10,
+    }) as DnD5eAbilityScores,
+    character.raceAbilityBonuses
+  );
+  const spellcastingAbility = getClassSpellcastingAbility(character.class || "");
+  const spellSummary =
+    character.class && spellcastingAbility
+      ? getSpellSelectionState(
+          character.class,
+          character.level || 1,
+          effectiveAbilityScores[spellcastingAbility],
+          character.preparedSpells || []
+        )
+      : null;
 
   return (
     <div className="space-y-6">
@@ -51,14 +75,20 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
                 <p className="font-semibold">{character.class}</p>
               </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Level</p>
-              <Badge variant="secondary" className="text-base px-3 py-1">
-                Level {character.level}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+              <div>
+                <p className="text-sm text-muted-foreground">Level</p>
+                <Badge variant="secondary" className="text-base px-3 py-1">
+                  Level {character.level}
+                </Badge>
+              </div>
+              {character.background && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Background</p>
+                  <p className="font-semibold">{character.background}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
         {/* Ability Scores */}
         <Card>
@@ -70,9 +100,9 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-3">
-              {(Object.keys(character.abilityScores || {}) as (keyof DnD5eAbilityScores)[]).map(
+              {(Object.keys(effectiveAbilityScores || {}) as (keyof DnD5eAbilityScores)[]).map(
                 (ability) => {
-                  const score = character.abilityScores?.[ability] || 10;
+                  const score = effectiveAbilityScores?.[ability] || 10;
                   const modifier = getModifier(score);
 
                   return (
@@ -111,6 +141,30 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
             ready to embark on epic adventures. Your character begins with balanced ability scores
             and is prepared to face the challenges ahead.
           </p>
+          <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
+            {spellSummary && (
+              <p>
+                Spellcasting: {spellSummary.mode === "known" ? "Known" : "Prepared"} | Cantrips{" "}
+                {spellSummary.currentCantrips}
+                {spellSummary.maxCantrips !== null ? `/${spellSummary.maxCantrips}` : ""} | Leveled{" "}
+                {spellSummary.currentLeveledSpells}
+                {spellSummary.maxLeveledSpells !== null ? `/${spellSummary.maxLeveledSpells}` : ""}
+              </p>
+            )}
+            <p>
+              Equipment source:{" "}
+              {character.equipmentSelectionMode === "gold-buy" ? "Gold-buy selection" : "Class package"}
+            </p>
+            {character.raceAbilityBonuses && (
+              <p>
+                Race bonuses applied:{" "}
+                {Object.entries(character.raceAbilityBonuses)
+                  .filter(([, value]) => (value || 0) > 0)
+                  .map(([ability, value]) => `${ability} +${value}`)
+                  .join(", ") || "None"}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

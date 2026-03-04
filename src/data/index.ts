@@ -7,3 +7,5 @@ export * from "./races";
 export * from "./classes";
 export * from "./spells";
 export * from "./equipment";
+export * from "./backgrounds";
+export * from "./startingEquipment";

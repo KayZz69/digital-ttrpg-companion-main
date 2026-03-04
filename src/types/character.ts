@@ -205,6 +205,12 @@ export interface DnD5eCharacter {
   alignment?: string;
   /** Character's background (e.g., "Soldier", "Noble") */
   background?: string;
+  /** Skills granted by the chosen background */
+  backgroundSkills?: string[];
+  /** Ability choices selected for races that grant flexible ASIs */
+  raceAbilityChoices?: Array<keyof DnD5eAbilityScores>;
+  /** Calculated race ability bonuses applied at review/finalization */
+  raceAbilityBonuses?: Partial<Record<keyof DnD5eAbilityScores, number>>;
   /** Current experience points toward next level */
   experiencePoints: number;
   /** Current and maximum hit points */
@@ -225,6 +231,10 @@ export interface DnD5eCharacter {
   exhaustionLevel?: number;
   /** Items carried by the character */
   inventory: InventoryItem[];
+  /** Selected class starting equipment package id, if any */
+  startingEquipmentChoiceId?: string;
+  /** Equipment selection mode used during character creation */
+  equipmentSelectionMode?: "packages" | "gold-buy";
   /** Skill proficiencies and expertise */
   skills?: SkillProficiency;
   /** Saving throw proficiencies by ability */

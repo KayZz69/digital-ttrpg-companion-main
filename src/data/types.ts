@@ -31,6 +31,18 @@ export interface ClassSpellcasting {
   spellcastingFocus?: string;
 }
 
+export interface StartingEquipmentItem {
+  itemName: string;
+  quantity?: number;
+}
+
+export interface StartingEquipmentChoice {
+  id: string;
+  label: string;
+  items: StartingEquipmentItem[];
+  notes?: string;
+}
+
 export interface Class {
   id: string;
   name: string;
@@ -45,8 +57,18 @@ export interface Class {
     from: string[];
   };
   spellcasting?: ClassSpellcasting;
+  startingEquipment?: StartingEquipmentChoice[];
   features: ClassFeature[];
   subclasses: string[];
+}
+
+export interface Background {
+  id: string;
+  name: string;
+  skills: string[];
+  tools?: string[];
+  languages?: string[];
+  description?: string;
 }
 
 export interface Spell {

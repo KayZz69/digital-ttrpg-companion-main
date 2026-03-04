@@ -5,6 +5,7 @@ import {
   getDefaultSpellSlots,
   getHighestSlotLevel,
   getLevelOneHitPoints,
+  getMaxCantrips,
   getProficiencyBonus,
   getSpellSelectionState,
   getSpellcastingRuleMode,
@@ -65,6 +66,8 @@ describe("dndRules helpers", () => {
     );
     expect(sorcererState.maxLeveledSpells).toBe(2);
     expect(sorcererState.currentLeveledSpells).toBe(2);
+    expect(sorcererState.maxCantrips).toBe(4);
+    expect(sorcererState.currentCantrips).toBe(1);
     expect(sorcererState.isAtLimit).toBe(true);
 
     const wizardState = getSpellSelectionState(
@@ -75,6 +78,12 @@ describe("dndRules helpers", () => {
     );
     expect(wizardState.maxLeveledSpells).toBe(6);
     expect(wizardState.remainingLeveledSpells).toBe(4);
+  });
+
+  it("returns cantrip caps by class progression", () => {
+    expect(getMaxCantrips("Wizard", 1)).toBe(3);
+    expect(getMaxCantrips("Sorcerer", 10)).toBe(6);
+    expect(getMaxCantrips("Fighter", 1)).toBeNull();
   });
 
   it("validates additions when class spell limits are reached", () => {
@@ -96,5 +105,15 @@ describe("dndRules helpers", () => {
       0
     );
     expect(cantripAllowed.canAdd).toBe(true);
+
+    const cantripBlocked = validateSpellSelection(
+      "Warlock",
+      1,
+      16,
+      [{ level: 0 }, { level: 0 }],
+      0
+    );
+    expect(cantripBlocked.canAdd).toBe(false);
+    expect(cantripBlocked.reason).toContain("Cantrip limit reached");
   });
 });
