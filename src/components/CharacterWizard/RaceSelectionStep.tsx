@@ -71,18 +71,17 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
         </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {races.map((race) => {
           const isSelected = character.race === race.name;
-          
+
           return (
             <Card
               key={race.id}
-              className={`cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${
-                isSelected
+              className={`cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${isSelected
                   ? "border-primary border-2 bg-primary/5"
                   : "border-border hover:border-primary/50"
-              }`}
+                }`}
               onClick={() => handleRaceSelect(race.name, race.id, race.abilityScoreIncrease)}
             >
               <CardHeader>
@@ -116,7 +115,7 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
                     )}
                   </div>
                 </div>
-                
+
                 {race.languages && race.languages.length > 0 && (
                   <div>
                     <p className="text-xs text-muted-foreground">
@@ -182,10 +181,10 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
                   selectedRace.abilityScoreIncrease,
                   character.raceAbilityChoices || []
                 ) && (
-                  <p className="text-sm text-destructive">
-                    Choose valid abilities for all race bonus selections before continuing.
-                  </p>
-                )}
+                    <p className="text-sm text-destructive">
+                      Choose valid abilities for all race bonus selections before continuing.
+                    </p>
+                  )}
               </div>
             )}
           </CardContent>

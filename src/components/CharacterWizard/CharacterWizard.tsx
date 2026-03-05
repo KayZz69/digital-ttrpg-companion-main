@@ -429,7 +429,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container max-w-4xl mx-auto p-6">
+      <div className="container max-w-6xl mx-auto p-6">
         {/* Header with progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">

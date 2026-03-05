@@ -42,17 +42,16 @@ export const BackgroundStep = ({ character, setCharacter }: BackgroundStepProps)
         </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {backgrounds.map((background) => {
           const isSelected = character.background === background.name;
           return (
             <Card
               key={background.id}
-              className={`cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${
-                isSelected
+              className={`cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${isSelected
                   ? "border-primary border-2 bg-primary/5"
                   : "border-border hover:border-primary/50"
-              }`}
+                }`}
               onClick={() => applyBackground(background.name, background.skills)}
             >
               <CardHeader>

@@ -38,7 +38,7 @@ export const ClassSelectionStep = ({ character, setCharacter }: ClassSelectionSt
         </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {classes.map((cls) => {
           const isSelected = character.class === cls.name;
 
@@ -46,8 +46,8 @@ export const ClassSelectionStep = ({ character, setCharacter }: ClassSelectionSt
             <Card
               key={cls.id}
               className={`cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${isSelected
-                  ? "border-primary border-2 bg-primary/5"
-                  : "border-border hover:border-primary/50"
+                ? "border-primary border-2 bg-primary/5"
+                : "border-border hover:border-primary/50"
                 }`}
               onClick={() => handleClassSelect(cls)}
             >
