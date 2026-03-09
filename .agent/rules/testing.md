@@ -4,9 +4,14 @@ trigger: always_on
 
 # Tests and verification
 
-## Always test non‑trivial changes
-- “For any new feature or bug fix, add or update tests and then run them.”
-- "Never delete tests unless I explicitly approve; prefer fixing or skipping with a short comment explaining why.”
+## Always verify non-trivial changes
+- For any bug fix or feature with logic, add or update tests when practical and then run the relevant verification commands.
+- Never delete tests unless explicitly approved. Prefer fixing or replacing them.
 
-## Show what you checked
-- “After running tests, give me a short summary: what you ran, what passed/failed, and any remaining risks in 5–10 lines.”
+## Choose the right checks
+- Run `npm run lint` after code changes.
+- Run `npm test` for utility, rules, hook, and behavior changes that have or should have coverage.
+- Run `npm run build` when changes affect routing, shared types, app composition, or exported components.
+
+## Report what you checked
+- After verification, give a short summary of what you ran, what passed or failed, and any remaining risks.
