@@ -1,35 +1,110 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with code in this repository.
+
+## Hard Rules
+
+ALWAYS:
+- Read `architecture.md` before changing routes, persistence behavior, or subsystem boundaries.
+- Run `npm run lint` after code changes.
+- Run `npm test` when changing utilities, hooks, rules code, or any behavior with existing coverage.
+- Run `npm run build` after changes that affect routing, shared types, page composition, or exported components.
+- Follow existing patterns in nearby files before introducing new abstractions.
+- Keep rules, progression, and combat logic in `src/lib/` or `src/utils/`, not embedded in page components.
+- Update docs in the same change when behavior, localStorage shape, or workflow expectations change.
+
+NEVER:
+- Change localStorage keys or persisted JSON shapes without approval and migration notes.
+- Modify config, CI, deployment files, or dependency versions without explicit approval.
+- Treat shadcn primitives in `src/components/ui/` as free-form design files. Edit them intentionally and minimally.
+- Use `any` where a concrete type or narrow union is practical.
+- Leave debugging `console.log` calls in committed code.
+- Delete tests without approval.
+
+ASK FIRST:
+- Before changing route structure, navigation semantics, or URL contracts.
+- Before altering shared 5e data baselines in `src/data/`.
+- Before changing character creation step order or rules assumptions.
+- Before introducing new dependencies or removing existing ones.
+- Before making a breaking change to a public prop contract used across multiple pages/components.
 
 ## Project Overview
 
-Digital TTRPG Companion is a React SPA for D&D 5e character management, combat tracking, dice rolling, and session journaling. Data is persisted in browser localStorage (no backend).
+Digital TTRPG Companion is a React + TypeScript SPA for DnD 5e character management, combat tracking, dice rolling, NPC storage, compendium browsing, and session journaling. Persistence is localStorage only.
 
-For canonical architecture details (routing, storage keys, layer structure), see `architecture.md`.
+Canonical architecture details, routes, storage keys, and mechanics boundaries live in `architecture.md`.
 
 ## Commands
 
-- `npm run dev` - start Vite dev server on port 8080
-- `npm run build` - production build to `dist/`
-- `npm run lint` - ESLint check
-- `npm test` - run Vitest once
-- `npm run test:watch` - Vitest in watch mode
-- Single test: `npx vitest run src/utils/diceUtils.test.ts`
+```bash
+npm run dev
+npm run build
+npm run build:dev
+npm run lint
+npm test
+npm run test:watch
+```
 
-## Code Style
+Targeted test examples:
 
-- React function components, PascalCase filenames for components/pages, camelCase for utilities.
-- Most files use 2-space indent and double quotes; some test/legacy files use 4 spaces and single quotes. Match local file style.
-- Use `@/` alias imports for `src/*` paths.
-- `src/components/ui/` contains shadcn/ui generated primitives; edit intentionally.
+```bash
+npx vitest run src/utils/diceUtils.test.ts
+npx vitest run src/utils/progressionUtils.test.ts
+```
 
-## Agent Rules (from .agent/rules/)
+## Architecture
 
-- Only modify files the task requires.
-- Before changing public APIs or data schemas, propose a plan first.
-- Favor small, focused functions and components.
-- New features go in their own file/module.
-- Every non-trivial change needs tests; never delete tests without approval.
-- After running tests, provide a short pass/fail summary.
-- Update docs (`README.md`, `architecture.md`, `AGENTS.md`) when behavior or contributor workflow changes.
+### Routing
+- `/` -> character creation wizard
+- `/characters` -> character list
+- `/character/:id` -> character sheet view
+- `/character/:id/edit` -> character edit flow
+- `/character/:id/journal` -> session journal
+- `/character/:id/combat` -> combat tracker
+- `/dice` -> dice roller
+- `/npc-library` -> NPC library
+- `/compendium` -> spells and equipment browser
+
+### Persistence
+Current browser storage keys:
+- `soloquest_characters`
+- `soloquest_npcs`
+- `soloquest_journal`
+
+Changing a key name or stored JSON shape is a breaking change for existing local data.
+
+### Rules and Mechanics Boundaries
+- `src/lib/dndRules.ts` handles spell slots, prepared and known limits, and cantrip caps.
+- `src/lib/characterCreationRules.ts` handles race ability score bonus parsing and application.
+- `src/lib/dndCompendium.ts` contains selectors and compendium helpers.
+- `src/utils/progressionUtils.ts` owns XP thresholds, HP gain, and ASI application.
+- `src/utils/combatMathUtils.ts` owns attack, save, damage, and concentration math.
+
+When behavior belongs to one of these domains, extend the owning module rather than duplicating logic in the UI.
+
+## Working Patterns
+
+- Match local formatting in each file.
+- Prefer named exports for new components and helpers unless the file already uses a default export pattern.
+- Keep route pages focused on composition and user interaction. Extract reusable or testable logic into hooks, utils, or lib modules.
+- For data-heavy additions, update types first, then static data, then selectors/helpers, then UI.
+- Preserve existing user data where possible. If a change risks invalidating stored state, document it and get approval first.
+
+## Testing Expectations
+
+- Utility and rules changes should usually ship with Vitest coverage.
+- UI behavior tests should use Testing Library with jsdom, not browser-only assumptions.
+- For bug fixes, prefer adding a regression test that would have failed before the change.
+- After verification, report the exact commands run and whether they passed.
+
+## Skills
+
+Local skills live in `.claude/skills/`. Check them before starting specialized work:
+
+- `component-builder`
+- `debug-assistant`
+- `code-review`
+- `git-workflow`
+- `changelog-generator`
+- `feature-test-writer`
+- `rules-content-author`
