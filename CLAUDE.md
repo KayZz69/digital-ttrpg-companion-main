@@ -1,11 +1,11 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 This file provides guidance to Claude Code when working with code in this repository.
 
 ## Hard Rules
 
 ALWAYS:
-- Read `architecture.md` before changing routes, persistence behavior, or subsystem boundaries.
+- Read `ARCHITECTURE.md` before changing routes, persistence behavior, or subsystem boundaries.
 - Run `npm run lint` after code changes.
 - Run `npm test` when changing utilities, hooks, rules code, or any behavior with existing coverage.
 - Run `npm run build` after changes that affect routing, shared types, page composition, or exported components.
@@ -32,7 +32,7 @@ ASK FIRST:
 
 Digital TTRPG Companion is a React + TypeScript SPA for DnD 5e character management, combat tracking, dice rolling, NPC storage, compendium browsing, and session journaling. Persistence is localStorage only.
 
-Canonical architecture details, routes, storage keys, and mechanics boundaries live in `architecture.md`.
+Canonical architecture details, routes, storage keys, and mechanics boundaries live in `ARCHITECTURE.md`.
 
 ## Commands
 
@@ -96,6 +96,17 @@ When behavior belongs to one of these domains, extend the owning module rather t
 - UI behavior tests should use Testing Library with jsdom, not browser-only assumptions.
 - For bug fixes, prefer adding a regression test that would have failed before the change.
 - After verification, report the exact commands run and whether they passed.
+
+## Nightly Handoff Protocol
+
+Kay uses a background agent (Bulhkin) that runs overnight and continues work. Maintain the Nightly Handoff section in `SPRINT.md` so Bulhkin knows what to do.
+
+- Bulhkin picks up the **Tonight** section in [SPRINT.md](./SPRINT.md), implements tasks on a new branch, and opens a PR.
+- The **Maintenance** checklist runs every night regardless of sprint tasks.
+- Scope to one sprint at a time — pull tasks from [ROADMAP.md](./ROADMAP.md), do not invent scope.
+- Max ~5-7 tasks per sprint; if a sprint is already in progress, only add what remains.
+- When finishing a session, populate **Tonight** with the immediate next 1–3 tasks only.
+- After completing a sprint, move items to **Completed** and populate the next sprint from the roadmap.
 
 ## Skills
 

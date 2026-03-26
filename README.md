@@ -37,6 +37,6 @@ npm run dev
 
 ## Project Documentation
 
-- `architecture.md`: canonical architecture, routes, storage keys, and module layout.
+- `ARCHITECTURE.md`: canonical architecture, routes, storage keys, and module layout.
 - `AGENTS.md`: contributor workflow, coding conventions, testing, and PR guidance.
 - `CLAUDE.md`: concise agent-facing implementation notes and guardrails.

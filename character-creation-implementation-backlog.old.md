@@ -1,3 +1,5 @@
+> **Superseded.** Active sprint tracking moved to [SPRINT.md](./SPRINT.md). See [ROADMAP.md](./ROADMAP.md) for current roadmap.
+
 # Character Creation Remediation Backlog
 
 Last updated: 2026-02-17  
