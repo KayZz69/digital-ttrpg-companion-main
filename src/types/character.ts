@@ -102,6 +102,13 @@ export interface SavingThrowProficiency {
 /**
  * Spell slot availability for each spell level (1-9).
  * Tracks current remaining and maximum slots.
+ *
+ * The `max` values here should be populated from RulesRegistry.getSpellSlots()
+ * output. Direct mutation of this type is allowed for in-session slot tracking
+ * (e.g. spending/recovering slots during play).
+ *
+ * @see src/lib/rules/RulesRegistry.ts — SpellSlot type
+ * @see src/lib/rules/spells.ts — getSpellSlots() produces the max values
  */
 export interface SpellSlots {
   level1: { current: number; max: number };
@@ -245,6 +252,18 @@ export interface DnD5eCharacter {
   preparedSpells?: PreparedSpell[];
   /** Which ability score governs spellcasting */
   spellcastingAbility?: keyof DnD5eAbilityScores;
+  /**
+   * Rules version used to generate this character's spell slots and limits.
+   * Populated by the RulesRegistry at character creation or migration.
+   *
+   * Format: "<year>-<edition>", e.g. "2024-dnd5e"
+   * Absent on legacy characters (pre-CCR-002); treated as "2014-dnd5e"
+   * during the CCR-005 migration pass.
+   *
+   * @see src/lib/rules/spells.ts — getRules().rulesVersion
+   * @see SPRINT.md — CCR-005: Legacy character migration layer
+   */
+  rulesVersion?: string;
 }
 
 /**
