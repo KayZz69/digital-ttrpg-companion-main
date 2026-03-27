@@ -22,6 +22,7 @@ import {
   getLevelOneHitPoints,
   getSpellSelectionState,
 } from "@/lib/dndRules";
+import { getRules } from "@/lib/rules/spells";
 import {
   applyAbilityBonuses,
   hasRequiredRaceAbilityChoices,
@@ -376,6 +377,9 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         ? character.savingThrows
         : getClassSavingThrowProficiencies(character.class);
 
+    const rules = getRules();
+    const spellcastingType = rules.getSpellcastingType(character.class.toLowerCase());
+
     const newCharacter: Character = {
       id: crypto.randomUUID(),
       system: "dnd5e",
@@ -387,6 +391,8 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         classId: selectedClass?.id,
         raceId: selectedRace?.id,
         level,
+        rulesVersion: rules.rulesVersion,
+        spellcastingType,
         hitPoints: {
           current: maxHP,
           max: maxHP,

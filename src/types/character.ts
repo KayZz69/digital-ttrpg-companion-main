@@ -3,6 +3,8 @@
  * Supports D&D 5e character sheets with plans for other game systems.
  */
 
+import type { SpellcastingType } from "@/lib/rules/RulesRegistry";
+
 /**
  * Supported tabletop RPG game systems.
  * Currently only D&D 5e is fully implemented.
@@ -252,6 +254,20 @@ export interface DnD5eCharacter {
   preparedSpells?: PreparedSpell[];
   /** Which ability score governs spellcasting */
   spellcastingAbility?: keyof DnD5eAbilityScores;
+  /**
+   * Describes how this class acquires and manages leveled spells.
+   *
+   * - `known`    — fixed spell list, count capped by level (Bard, Sorcerer).
+   * - `prepared` — daily preparation from full class list (Cleric, Druid, Wizard, Paladin, Ranger).
+   * - `pact`     — warlock pact magic, single slot level, short-rest recovery.
+   * - `none`     — no spellcasting (Fighter, Barbarian, Monk, Rogue).
+   *
+   * Absent on legacy characters (pre-CCR-004); consumers should fall back to
+   * inferring the type from the class name via `getSpellcastingType(classId)`.
+   *
+   * @see src/lib/rules/RulesRegistry.ts — SpellcastingType
+   */
+  spellcastingType?: SpellcastingType;
   /**
    * Rules version used to generate this character's spell slots and limits.
    * Populated by the RulesRegistry at character creation or migration.

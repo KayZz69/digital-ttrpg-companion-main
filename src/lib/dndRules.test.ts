@@ -58,17 +58,18 @@ describe("dndRules helpers", () => {
   });
 
   it("tracks leveled spell limits for known and prepared casters", () => {
+    // 2024 PHB: Sorcerer level 1 knows 3 leveled spells, 4 cantrips
     const sorcererState = getSpellSelectionState(
       "Sorcerer",
       1,
       16,
       [{ level: 1 }, { level: 1 }, { level: 0 }]
     );
-    expect(sorcererState.maxLeveledSpells).toBe(2);
+    expect(sorcererState.maxLeveledSpells).toBe(3);
     expect(sorcererState.currentLeveledSpells).toBe(2);
     expect(sorcererState.maxCantrips).toBe(4);
     expect(sorcererState.currentCantrips).toBe(1);
-    expect(sorcererState.isAtLimit).toBe(true);
+    expect(sorcererState.isAtLimit).toBe(false);
 
     const wizardState = getSpellSelectionState(
       "Wizard",
