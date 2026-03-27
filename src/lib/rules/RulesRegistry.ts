@@ -99,7 +99,7 @@ export type SpellcastingType = "known" | "prepared" | "pact" | "none";
  */
 export interface RulesRegistry<
   TSpellSlots = SpellSlot[],
-  TCantrips = Cantrip[],
+  TCantrips = Cantrip | null,
   TEquipment = EquipmentRule | null,
 > {
   /**
