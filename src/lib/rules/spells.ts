@@ -276,6 +276,9 @@ export function getSpellSlots(classId: string, characterLevel: number): SpellSlo
  * Returns cantrip progression data for a class at a given character level.
  * Returns null for classes with no cantrips.
  *
+ * @warning For classes with no cantrips (paladin, ranger), returns `{maxKnown: 0}` not null.
+ * Consumers should check `maxKnown > 0` before rendering cantrip UI.
+ *
  * @pure
  */
 export function getCantrips(classId: string, characterLevel: number): Cantrip | null {

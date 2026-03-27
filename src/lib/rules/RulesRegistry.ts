@@ -83,23 +83,6 @@ export interface EquipmentRule {
  */
 export type SpellcastingType = "known" | "prepared" | "pact" | "none";
 
-/**
- * Spell slot array for all nine spell levels.
- * Index 0 = level 1 spell slots, index 8 = level 9 spell slots.
- * Value 0 means the slot level is not available.
- */
-export type SpellSlotRow = readonly [
-  number, // level 1
-  number, // level 2
-  number, // level 3
-  number, // level 4
-  number, // level 5
-  number, // level 6
-  number, // level 7
-  number, // level 8
-  number, // level 9
-];
-
 // ---------------------------------------------------------------------------
 // Core registry interface
 // ---------------------------------------------------------------------------

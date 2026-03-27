@@ -47,7 +47,7 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
         items: ["Greataxe", "4 Handaxes", "Explorer's Pack", "15 GP"],
       },
     ],
-    startingGoldGP: 75, // 2024 PHB: 2d4 × 10 gp average
+    startingGoldGP: 75, // Default 75 gp (approximated, full rules in CCR-007)
   },
   bard: {
     classId: "bard",
