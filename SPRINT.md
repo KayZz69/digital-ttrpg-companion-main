@@ -7,7 +7,7 @@
 
 ### Tasks
 - [ ] CCR-001 — Rule baseline decision: select 2014/2024/hybrid, document in ARCHITECTURE.md
-- [ ] CCR-002 — Creation rules schema and registry: typed rules layer for spellcasting, cantrips, slots, equipment
+- [x] CCR-002 — Creation rules schema and registry: typed rules layer for spellcasting, cantrips, slots, equipment
 - [ ] CCR-003 — Registry-driven spell logic: slot generation and spell limits consume registry only
 - [ ] CCR-004 — Character data model update: support known-caster and prepared-caster semantics
 - [ ] CCR-005 — Legacy character migration layer: normalize old `preparedSpells` records at load time
@@ -22,7 +22,8 @@
 ## Nightly Handoff (Bulhkin)
 <!-- Updated by agents at end of each session -->
 ### Tonight
-- (tasks for overnight agent)
+- CCR-003: Registry-driven spell logic — character load/init consumes getRules() from spells.ts (replace direct dndRules.ts calls in character creation flow)
+- CCR-004: CharacterData model update — support known-caster vs prepared-caster semantics in type system
 
 ### Maintenance
 - [ ] Run all tests and report failures
