@@ -176,9 +176,9 @@ function getCantripDamageDice(characterLevel: number): number {
  */
 const KNOWN_SPELL_LIMITS: Readonly<Record<string, ReadonlyArray<number>>> = {
   // 2024 PHB — Bard class table
-  bard: [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 15, 16, 17, 18, 19, 20, 22, 22],
+  bard: [4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 15, 16, 17, 18, 19, 20, 22, 22, 22],
   // 2024 PHB — Sorcerer class table
-  sorcerer: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15],
+  sorcerer: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17],
   // 2024 PHB — Warlock class table (Pact Magic "Spells Known" column)
   warlock: [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
 };

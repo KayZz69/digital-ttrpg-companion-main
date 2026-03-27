@@ -277,12 +277,12 @@ describe("getMaxPreparedSpells", () => {
   });
 
   // Known casters
-  it("sorcerer level 1: 2 spells known", () => {
-    expect(getMaxPreparedSpells("sorcerer", 1, 3)).toBe(2);
+  it("sorcerer level 1: 3 spells known", () => {
+    expect(getMaxPreparedSpells("sorcerer", 1, 3)).toBe(3);
   });
 
-  it("bard level 5: 7 spells known", () => {
-    expect(getMaxPreparedSpells("bard", 5, 3)).toBe(7);
+  it("bard level 5: 8 spells known", () => {
+    expect(getMaxPreparedSpells("bard", 5, 3)).toBe(8);
   });
 
   it("warlock level 1: 2 spells known", () => {
@@ -295,8 +295,8 @@ describe("getMaxPreparedSpells", () => {
 
   // Known casters ignore spellcasting modifier
   it("sorcerer: modifier does not affect known count", () => {
-    expect(getMaxPreparedSpells("sorcerer", 5, 0)).toBe(6);
-    expect(getMaxPreparedSpells("sorcerer", 5, 5)).toBe(6);
+    expect(getMaxPreparedSpells("sorcerer", 5, 0)).toBe(7);
+    expect(getMaxPreparedSpells("sorcerer", 5, 5)).toBe(7);
   });
 
   // Prepared full casters
