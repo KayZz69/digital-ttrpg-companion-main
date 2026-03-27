@@ -21,6 +21,7 @@ import type {
   SpellSlot,
   SpellcastingType,
 } from "./RulesRegistry";
+import { equipment } from "./equipment";
 
 // ---------------------------------------------------------------------------
 // Spell slot tables (2024 PHB)
@@ -369,10 +370,6 @@ export function getRules(): RulesRegistry<SpellSlot[], Cantrip | null, Equipment
     getSpellcastingType,
     getMaxPreparedSpells,
 
-    getEquipmentRules(_classId: string): EquipmentRule | null {
-      // Full implementation deferred to CCR-007.
-      // Stub returns null; equipment data will be sourced from equipment.ts.
-      return null;
-    },
+    getEquipmentRules: (classId: string) => equipment.getEquipmentRules(classId),
   };
 }

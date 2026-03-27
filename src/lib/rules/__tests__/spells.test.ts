@@ -363,10 +363,17 @@ describe("getRules", () => {
     expect(rules.getMaxPreparedSpells("wizard", 5, 3)).toBe(8);
   });
 
-  it("getEquipmentRules returns null (stub — CCR-007)", () => {
+  it("delegates getEquipmentRules to equipment registry", () => {
     const rules = getRules();
-    expect(rules.getEquipmentRules("wizard")).toBeNull();
-    expect(rules.getEquipmentRules("fighter")).toBeNull();
+    // Known classes should return equipment data
+    const wizardEquip = rules.getEquipmentRules("wizard");
+    expect(wizardEquip).not.toBeNull();
+    expect(wizardEquip?.classId).toBe("wizard");
+    const fighterEquip = rules.getEquipmentRules("fighter");
+    expect(fighterEquip).not.toBeNull();
+    expect(fighterEquip?.classId).toBe("fighter");
+    // Unknown classes should still return null
+    expect(rules.getEquipmentRules("unknown-class")).toBeNull();
   });
 
   it("returns a new object on each call (not cached/singleton)", () => {

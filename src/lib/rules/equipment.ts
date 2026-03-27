@@ -195,3 +195,9 @@ export function getEquipmentRegistry(): EquipmentRegistry {
     },
   };
 }
+
+/**
+ * Singleton equipment registry instance.
+ * Consumed by getRules() in spells.ts to delegate getEquipmentRules.
+ */
+export const equipment: EquipmentRegistry = getEquipmentRegistry();
