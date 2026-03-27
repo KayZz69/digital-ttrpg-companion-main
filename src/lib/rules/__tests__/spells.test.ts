@@ -248,10 +248,10 @@ describe("getCantrips", () => {
     expect(getCantrips("wizard", 1)?.maxKnown).toBe(3);
   });
 
-  it("paladin and ranger have 0 cantrips (not null — they have an entry)", () => {
-    // The table has zeros; maxKnown should be 0, not null
-    expect(getCantrips("paladin", 5)?.maxKnown).toBe(0);
-    expect(getCantrips("ranger", 10)?.maxKnown).toBe(0);
+  it("paladin and ranger have no cantrips — return null (contract enforced)", () => {
+    // P2 fix: no cantrip access → null, not {maxKnown: 0}
+    expect(getCantrips("paladin", 5)).toBeNull();
+    expect(getCantrips("ranger", 10)).toBeNull();
   });
 
   it("cantrips for all caster classes at all levels are non-negative", () => {

@@ -276,8 +276,8 @@ export function getSpellSlots(classId: string, characterLevel: number): SpellSlo
  * Returns cantrip progression data for a class at a given character level.
  * Returns null for classes with no cantrips.
  *
- * @warning For classes with no cantrips (paladin, ranger), returns `{maxKnown: 0}` not null.
- * Consumers should check `maxKnown > 0` before rendering cantrip UI.
+ * Classes with no cantrips (paladin, ranger) return `null` — not `{maxKnown: 0}`.
+ * Consumers should check `result !== null` before rendering cantrip UI.
  *
  * @pure
  */
@@ -287,9 +287,12 @@ export function getCantrips(classId: string, characterLevel: number): Cantrip | 
   const limits = CANTRIP_LIMITS[id];
   if (!limits) return null;
 
+  const maxKnown = limits[level - 1];
+  if (maxKnown === 0) return null; // No cantrip access → null, not {maxKnown: 0}
+
   return {
     characterLevel: level,
-    maxKnown: limits[level - 1],
+    maxKnown,
     damageDice: getCantripDamageDice(level),
   };
 }
@@ -314,6 +317,10 @@ export function getMaxPreparedSpells(
 ): number {
   const id = classId.trim().toLowerCase();
   const level = clampLevel(characterLevel);
+
+  // FUNDAMENTAL: Does this class have ANY spell slots at this level?
+  const slots = getSpellSlots(id, level);
+  if (slots.length === 0) return 0; // No slots = no prepared spells possible
 
   // Known casters: fixed table
   const knownLimits = KNOWN_SPELL_LIMITS[id];
