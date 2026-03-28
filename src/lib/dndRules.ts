@@ -1,92 +1,7 @@
 import { type SpellSlots } from "@/types/character";
 import { getClassHitDie, isSpellcastingClass } from "./dndCompendium";
-
-const FULL_CASTER_SLOTS: number[][] = [
-  [2, 0, 0, 0, 0, 0, 0, 0, 0],
-  [3, 0, 0, 0, 0, 0, 0, 0, 0],
-  [4, 2, 0, 0, 0, 0, 0, 0, 0],
-  [4, 3, 0, 0, 0, 0, 0, 0, 0],
-  [4, 3, 2, 0, 0, 0, 0, 0, 0],
-  [4, 3, 3, 0, 0, 0, 0, 0, 0],
-  [4, 3, 3, 1, 0, 0, 0, 0, 0],
-  [4, 3, 3, 2, 0, 0, 0, 0, 0],
-  [4, 3, 3, 3, 1, 0, 0, 0, 0],
-  [4, 3, 3, 3, 2, 0, 0, 0, 0],
-  [4, 3, 3, 3, 2, 1, 0, 0, 0],
-  [4, 3, 3, 3, 2, 1, 0, 0, 0],
-  [4, 3, 3, 3, 2, 1, 1, 0, 0],
-  [4, 3, 3, 3, 2, 1, 1, 0, 0],
-  [4, 3, 3, 3, 2, 1, 1, 1, 0],
-  [4, 3, 3, 3, 2, 1, 1, 1, 0],
-  [4, 3, 3, 3, 2, 1, 1, 1, 1],
-  [4, 3, 3, 3, 3, 1, 1, 1, 1],
-  [4, 3, 3, 3, 3, 2, 1, 1, 1],
-  [4, 3, 3, 3, 3, 2, 2, 1, 1],
-];
-
-const HALF_CASTER_SLOTS: number[][] = [
-  [0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [2, 0, 0, 0, 0, 0, 0, 0, 0],
-  [3, 0, 0, 0, 0, 0, 0, 0, 0],
-  [3, 0, 0, 0, 0, 0, 0, 0, 0],
-  [4, 2, 0, 0, 0, 0, 0, 0, 0],
-  [4, 2, 0, 0, 0, 0, 0, 0, 0],
-  [4, 3, 0, 0, 0, 0, 0, 0, 0],
-  [4, 3, 0, 0, 0, 0, 0, 0, 0],
-  [4, 3, 2, 0, 0, 0, 0, 0, 0],
-  [4, 3, 2, 0, 0, 0, 0, 0, 0],
-  [4, 3, 3, 0, 0, 0, 0, 0, 0],
-  [4, 3, 3, 0, 0, 0, 0, 0, 0],
-  [4, 3, 3, 1, 0, 0, 0, 0, 0],
-  [4, 3, 3, 1, 0, 0, 0, 0, 0],
-  [4, 3, 3, 2, 0, 0, 0, 0, 0],
-  [4, 3, 3, 2, 0, 0, 0, 0, 0],
-  [4, 3, 3, 3, 1, 0, 0, 0, 0],
-  [4, 3, 3, 3, 1, 0, 0, 0, 0],
-  [4, 3, 3, 3, 2, 0, 0, 0, 0],
-  [4, 3, 3, 3, 2, 0, 0, 0, 0],
-];
-
-const WARLOCK_PACT_SLOTS: Array<{ spellLevel: number; slots: number }> = [
-  { spellLevel: 1, slots: 1 },
-  { spellLevel: 1, slots: 2 },
-  { spellLevel: 2, slots: 2 },
-  { spellLevel: 2, slots: 2 },
-  { spellLevel: 3, slots: 2 },
-  { spellLevel: 3, slots: 2 },
-  { spellLevel: 4, slots: 2 },
-  { spellLevel: 4, slots: 2 },
-  { spellLevel: 5, slots: 2 },
-  { spellLevel: 5, slots: 2 },
-  { spellLevel: 5, slots: 3 },
-  { spellLevel: 5, slots: 3 },
-  { spellLevel: 5, slots: 3 },
-  { spellLevel: 5, slots: 3 },
-  { spellLevel: 5, slots: 3 },
-  { spellLevel: 5, slots: 3 },
-  { spellLevel: 5, slots: 4 },
-  { spellLevel: 5, slots: 4 },
-  { spellLevel: 5, slots: 4 },
-  { spellLevel: 5, slots: 4 },
-];
-
-const HALF_CASTER_CLASSES = new Set(["paladin", "ranger"]);
-const PREPARED_SPELLCASTERS = new Set(["cleric", "druid", "paladin", "ranger", "wizard"]);
-const KNOWN_SPELL_LIMITS: Record<string, number[]> = {
-  bard: [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 15, 16, 17, 18, 19, 20, 22, 22],
-  sorcerer: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15],
-  warlock: [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
-};
-const CANTRIP_LIMITS: Record<string, number[]> = {
-  bard: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-  cleric: [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-  druid: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-  paladin: Array(20).fill(0),
-  ranger: Array(20).fill(0),
-  sorcerer: [4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-  warlock: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-  wizard: [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-};
+import { getCantrips, getMaxPreparedSpells, getSpellSlots, getSpellcastingType } from "./rules/spells";
+export { getRules } from "./rules/spells";
 
 export type SpellcastingRuleMode = "none" | "prepared" | "known";
 
@@ -108,8 +23,6 @@ export interface SpellSelectionValidation extends SpellSelectionState {
   reason?: string;
 }
 
-const clampLevel = (level: number): number => Math.min(Math.max(level, 1), 20);
-
 const toRuleLabel = (mode: SpellcastingRuleMode): SpellSelectionState["label"] => {
   if (mode === "known") {
     return "Known spells";
@@ -120,39 +33,27 @@ const toRuleLabel = (mode: SpellcastingRuleMode): SpellSelectionState["label"] =
   return "Spells";
 };
 
-const getPreparedLeveledLimit = (
-  className: string,
-  level: number,
-  abilityModifier: number
-): number => {
-  const lower = className.toLowerCase();
-  if (lower === "paladin" || lower === "ranger") {
-    return Math.max(1, Math.floor(level / 2) + abilityModifier);
-  }
-  return Math.max(1, level + abilityModifier);
-};
-
+/**
+ * Returns the maximum cantrips known for a class at a given level.
+ * Delegates to the rules registry.
+ */
 export function getMaxCantrips(className: string, level: number): number | null {
-  const normalizedLevel = clampLevel(level);
-  const counts = CANTRIP_LIMITS[className.trim().toLowerCase()];
-  if (!counts) {
-    return null;
-  }
-  return counts[normalizedLevel - 1] ?? null;
+  const cantrip = getCantrips(className, level);
+  return cantrip ? cantrip.maxKnown : null;
 }
 
+/**
+ * Returns the spellcasting rule mode for a class.
+ * Delegates to the registry's SpellcastingType and maps to the legacy mode union.
+ */
 export function getSpellcastingRuleMode(className: string): SpellcastingRuleMode {
-  const lower = className.trim().toLowerCase();
-  if (!lower || !isSpellcastingClass(className)) {
+  if (!className.trim() || !isSpellcastingClass(className)) {
     return "none";
   }
-  if (KNOWN_SPELL_LIMITS[lower]) {
-    return "known";
-  }
-  if (PREPARED_SPELLCASTERS.has(lower)) {
-    return "prepared";
-  }
-  return "prepared";
+  const type = getSpellcastingType(className);
+  if (type === "known" || type === "pact") return "known";
+  if (type === "prepared") return "prepared";
+  return "none";
 }
 
 export function getSpellSelectionState(
@@ -162,22 +63,16 @@ export function getSpellSelectionState(
   spells: Array<{ level: number }>
 ): SpellSelectionState {
   const mode = getSpellcastingRuleMode(className);
-  const normalizedLevel = clampLevel(level);
   const currentCantrips = spells.filter((spell) => spell.level === 0).length;
   const currentLeveledSpells = spells.filter((spell) => spell.level > 0).length;
   const label = toRuleLabel(mode);
-  const maxCantrips = mode === "none" ? 0 : getMaxCantrips(className, normalizedLevel);
+  const maxCantrips = mode === "none" ? 0 : getMaxCantrips(className, level);
 
   let maxLeveledSpells: number | null = null;
-  if (mode === "known") {
-    const counts = KNOWN_SPELL_LIMITS[className.trim().toLowerCase()] || [];
-    maxLeveledSpells = counts[normalizedLevel - 1] ?? null;
-  } else if (mode === "prepared") {
-    maxLeveledSpells = getPreparedLeveledLimit(
-      className,
-      normalizedLevel,
-      getAbilityModifier(abilityScore)
-    );
+  if (mode !== "none") {
+    const modifier = getAbilityModifier(abilityScore);
+    maxLeveledSpells = getMaxPreparedSpells(className, level, modifier);
+    if (maxLeveledSpells === 0) maxLeveledSpells = null;
   }
 
   const remainingLeveledSpells =
@@ -284,41 +179,19 @@ export function createEmptySpellSlots(): SpellSlots {
   };
 }
 
-function fillSlotsFromArray(values: number[]): SpellSlots {
-  const slots = createEmptySpellSlots();
-  values.forEach((value, index) => {
-    const key = `level${index + 1}` as keyof SpellSlots;
-    slots[key] = {
-      current: value,
-      max: value,
-    };
-  });
-  return slots;
-}
-
+/**
+ * Returns spell slots for a class at a given level.
+ * Delegates to the rules registry and converts SpellSlot[] to the SpellSlots shape
+ * expected by the character data model.
+ */
 export function getDefaultSpellSlots(className: string, level: number): SpellSlots {
-  const clampedLevel = Math.min(Math.max(level, 1), 20);
-  if (!isSpellcastingClass(className)) {
-    return createEmptySpellSlots();
+  const slots = createEmptySpellSlots();
+  const registrySlots = getSpellSlots(className, level);
+  for (const slot of registrySlots) {
+    const key = `level${slot.level}` as keyof SpellSlots;
+    slots[key] = { current: slot.max, max: slot.max };
   }
-
-  const lower = className.toLowerCase();
-  if (lower === "warlock") {
-    const pact = WARLOCK_PACT_SLOTS[clampedLevel - 1];
-    const slots = createEmptySpellSlots();
-    const key = `level${pact.spellLevel}` as keyof SpellSlots;
-    slots[key] = {
-      current: pact.slots,
-      max: pact.slots,
-    };
-    return slots;
-  }
-
-  if (HALF_CASTER_CLASSES.has(lower)) {
-    return fillSlotsFromArray(HALF_CASTER_SLOTS[clampedLevel - 1]);
-  }
-
-  return fillSlotsFromArray(FULL_CASTER_SLOTS[clampedLevel - 1]);
+  return slots;
 }
 
 export function getHighestSlotLevel(spellSlots: SpellSlots): number {

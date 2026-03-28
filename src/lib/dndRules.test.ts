@@ -64,11 +64,11 @@ describe("dndRules helpers", () => {
       16,
       [{ level: 1 }, { level: 1 }, { level: 0 }]
     );
-    expect(sorcererState.maxLeveledSpells).toBe(2);
+    expect(sorcererState.maxLeveledSpells).toBe(3); // 2024 PHB: sorcerer knows 3 spells at level 1
     expect(sorcererState.currentLeveledSpells).toBe(2);
     expect(sorcererState.maxCantrips).toBe(4);
     expect(sorcererState.currentCantrips).toBe(1);
-    expect(sorcererState.isAtLimit).toBe(true);
+    expect(sorcererState.isAtLimit).toBe(false);
 
     const wizardState = getSpellSelectionState(
       "Wizard",
