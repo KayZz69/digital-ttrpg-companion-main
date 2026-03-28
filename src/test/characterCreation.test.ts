@@ -4,7 +4,7 @@ import {
   getClassExpertiseSelectionCount,
   getClassStartingEquipmentChoices,
 } from "@/lib/dndCompendium";
-import { getSpellSelectionState } from "@/lib/dndRules";
+import { getRegistrySpellSelectionState } from "@/lib/rules/spells";
 
 describe("character creation rules wiring", () => {
   it("exposes background choices", () => {
@@ -25,10 +25,11 @@ describe("character creation rules wiring", () => {
   });
 
   it("tracks cantrip and leveled limits together", () => {
-    const wizardState = getSpellSelectionState(
+    // Wizard level 1, INT 16 → modifier +3 → maxLeveledSpells = 1 + 3 = 4
+    const wizardState = getRegistrySpellSelectionState(
       "Wizard",
       1,
-      16,
+      3,
       [{ level: 0 }, { level: 0 }, { level: 0 }, { level: 1 }, { level: 1 }]
     );
     expect(wizardState.maxCantrips).toBe(3);

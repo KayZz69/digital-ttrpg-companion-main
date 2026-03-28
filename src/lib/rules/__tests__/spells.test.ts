@@ -11,11 +11,15 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  buildSpellSlots,
   getCantrips,
+  getHighestSlotLevel,
   getMaxPreparedSpells,
+  getRegistrySpellSelectionState,
   getRules,
   getSpellSlots,
   getSpellcastingType,
+  validateRegistrySpellSelection,
 } from "../spells";
 
 // ---------------------------------------------------------------------------
@@ -477,5 +481,170 @@ describe("Integration: full progression for all casters", () => {
     expect(cantrips?.damageDice).toBe(2); // level 5 upgrade
     expect(maxPrepared).toBe(8); // 5 + 3
     expect(castingType).toBe("prepared");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildSpellSlots — bridge to CharacterData SpellSlots format
+// ---------------------------------------------------------------------------
+
+describe("buildSpellSlots", () => {
+  it("wizard level 5: populates levels 1–3, rest are zero", () => {
+    const slots = buildSpellSlots("wizard", 5);
+    expect(slots.level1).toEqual({ current: 4, max: 4 });
+    expect(slots.level2).toEqual({ current: 3, max: 3 });
+    expect(slots.level3).toEqual({ current: 2, max: 2 });
+    expect(slots.level4).toEqual({ current: 0, max: 0 });
+    expect(slots.level9).toEqual({ current: 0, max: 0 });
+  });
+
+  it("fighter: all zero slots", () => {
+    const slots = buildSpellSlots("fighter", 5);
+    for (let l = 1; l <= 9; l++) {
+      expect(slots[`level${l}` as keyof typeof slots]).toEqual({ current: 0, max: 0 });
+    }
+  });
+
+  it("warlock level 5: single pact slot at level 3", () => {
+    const slots = buildSpellSlots("warlock", 5);
+    expect(slots.level3).toEqual({ current: 2, max: 2 });
+    expect(slots.level1).toEqual({ current: 0, max: 0 });
+  });
+
+  it("paladin level 1: no slots", () => {
+    const slots = buildSpellSlots("paladin", 1);
+    for (let l = 1; l <= 9; l++) {
+      expect(slots[`level${l}` as keyof typeof slots]).toEqual({ current: 0, max: 0 });
+    }
+  });
+
+  it("paladin level 2: 2 first-level slots", () => {
+    const slots = buildSpellSlots("paladin", 2);
+    expect(slots.level1).toEqual({ current: 2, max: 2 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getHighestSlotLevel — bridge helper
+// ---------------------------------------------------------------------------
+
+describe("getHighestSlotLevel", () => {
+  it("wizard level 5: highest is 3", () => {
+    expect(getHighestSlotLevel("wizard", 5)).toBe(3);
+  });
+
+  it("wizard level 20: highest is 9", () => {
+    expect(getHighestSlotLevel("wizard", 20)).toBe(9);
+  });
+
+  it("fighter: 0", () => {
+    expect(getHighestSlotLevel("fighter", 10)).toBe(0);
+  });
+
+  it("warlock level 5: highest is 3 (pact slot level)", () => {
+    expect(getHighestSlotLevel("warlock", 5)).toBe(3);
+  });
+
+  it("paladin level 1: 0 (no slots yet)", () => {
+    expect(getHighestSlotLevel("paladin", 1)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getRegistrySpellSelectionState
+// ---------------------------------------------------------------------------
+
+describe("getRegistrySpellSelectionState", () => {
+  it("wizard level 1, mod +3: 3 cantrips, 4 leveled", () => {
+    const state = getRegistrySpellSelectionState("wizard", 1, 3, []);
+    expect(state.casterType).toBe("prepared");
+    expect(state.label).toBe("Prepared spells");
+    expect(state.maxCantrips).toBe(3);
+    expect(state.maxLeveledSpells).toBe(4);
+    expect(state.isAtLimit).toBe(false);
+    expect(state.isOverLimit).toBe(false);
+  });
+
+  it("bard level 1, mod +2: known caster", () => {
+    const state = getRegistrySpellSelectionState("bard", 1, 2, []);
+    expect(state.casterType).toBe("known");
+    expect(state.label).toBe("Known spells");
+    expect(state.maxLeveledSpells).toBe(4);
+  });
+
+  it("warlock: pact caster type", () => {
+    const state = getRegistrySpellSelectionState("warlock", 1, 3, []);
+    expect(state.casterType).toBe("pact");
+    expect(state.label).toBe("Pact spells");
+  });
+
+  it("non-caster returns casterType none", () => {
+    const state = getRegistrySpellSelectionState("fighter", 1, 0, []);
+    expect(state.casterType).toBe("none");
+    expect(state.isAtLimit).toBe(true);
+  });
+
+  it("correctly counts cantrips and leveled spells", () => {
+    const spells = [
+      { level: 0 }, { level: 0 }, { level: 0 },
+      { level: 1 }, { level: 1 },
+    ];
+    const state = getRegistrySpellSelectionState("wizard", 1, 3, spells);
+    expect(state.currentCantrips).toBe(3);
+    expect(state.currentLeveledSpells).toBe(2);
+    expect(state.remainingCantrips).toBe(0);
+    expect(state.remainingLeveledSpells).toBe(2);
+    expect(state.isAtLimit).toBe(false);
+    expect(state.isOverLimit).toBe(false);
+  });
+
+  it("detects over-limit cantrips", () => {
+    const spells = [{ level: 0 }, { level: 0 }, { level: 0 }, { level: 0 }]; // 4 cantrips for wizard L1 (max 3)
+    const state = getRegistrySpellSelectionState("wizard", 1, 3, spells);
+    expect(state.isOverLimit).toBe(true);
+  });
+
+  it("detects over-limit leveled spells", () => {
+    const spells = [
+      { level: 1 }, { level: 1 }, { level: 1 }, { level: 1 }, { level: 1 },
+    ]; // 5 leveled for wizard L1+3 (max 4)
+    const state = getRegistrySpellSelectionState("wizard", 1, 3, spells);
+    expect(state.isOverLimit).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateRegistrySpellSelection
+// ---------------------------------------------------------------------------
+
+describe("validateRegistrySpellSelection", () => {
+  it("allows adding a cantrip within limits", () => {
+    const result = validateRegistrySpellSelection("wizard", 1, 3, [], 0);
+    expect(result.canAdd).toBe(true);
+  });
+
+  it("blocks cantrip when at limit", () => {
+    const spells = [{ level: 0 }, { level: 0 }, { level: 0 }]; // 3 cantrips = wizard L1 max
+    const result = validateRegistrySpellSelection("wizard", 1, 3, spells, 0);
+    expect(result.canAdd).toBe(false);
+    expect(result.reason).toContain("Cantrip limit");
+  });
+
+  it("allows adding a leveled spell within limits", () => {
+    const result = validateRegistrySpellSelection("wizard", 1, 3, [], 1);
+    expect(result.canAdd).toBe(true);
+  });
+
+  it("blocks leveled spell at limit", () => {
+    const spells = [{ level: 1 }, { level: 1 }, { level: 1 }, { level: 1 }]; // 4 = max
+    const result = validateRegistrySpellSelection("wizard", 1, 3, spells, 1);
+    expect(result.canAdd).toBe(false);
+    expect(result.reason).toContain("limit reached");
+  });
+
+  it("blocks non-caster class", () => {
+    const result = validateRegistrySpellSelection("fighter", 1, 0, [], 1);
+    expect(result.canAdd).toBe(false);
+    expect(result.reason).toContain("does not use spellcasting");
   });
 });

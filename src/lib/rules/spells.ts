@@ -21,6 +21,7 @@ import type {
   SpellSlot,
   SpellcastingType,
 } from "./RulesRegistry";
+import type { SpellSlots } from "@/types/character";
 import { equipment } from "./equipment";
 
 // ---------------------------------------------------------------------------
@@ -340,6 +341,204 @@ export function getMaxPreparedSpells(
   }
 
   return 0;
+}
+
+// ---------------------------------------------------------------------------
+// Bridge helpers: convert registry output to character-data format
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates an empty SpellSlots object (all levels zero).
+ * Mirror of dndRules.createEmptySpellSlots — consumers should migrate here.
+ */
+function createEmptySpellSlots(): SpellSlots {
+  return {
+    level1: { current: 0, max: 0 },
+    level2: { current: 0, max: 0 },
+    level3: { current: 0, max: 0 },
+    level4: { current: 0, max: 0 },
+    level5: { current: 0, max: 0 },
+    level6: { current: 0, max: 0 },
+    level7: { current: 0, max: 0 },
+    level8: { current: 0, max: 0 },
+    level9: { current: 0, max: 0 },
+  };
+}
+
+/**
+ * Converts registry `SpellSlot[]` into the `SpellSlots` object stored on
+ * `DnD5eCharacter.spellSlots`. Current and max are set to the same value
+ * (fresh character / long rest).
+ *
+ * @pure
+ */
+export function buildSpellSlots(classId: string, characterLevel: number): SpellSlots {
+  const slots = getSpellSlots(classId, characterLevel);
+  const result = createEmptySpellSlots();
+  for (const s of slots) {
+    const key = `level${s.level}` as keyof SpellSlots;
+    result[key] = { current: s.max, max: s.max };
+  }
+  return result;
+}
+
+/**
+ * Returns the highest spell level with at least one slot.
+ * Equivalent to dndRules.getHighestSlotLevel but using registry output.
+ *
+ * @pure
+ */
+export function getHighestSlotLevel(classId: string, characterLevel: number): number {
+  const slots = getSpellSlots(classId, characterLevel);
+  if (slots.length === 0) return 0;
+  return Math.max(...slots.map((s) => s.level));
+}
+
+// ---------------------------------------------------------------------------
+// Spell selection state (registry-based)
+// ---------------------------------------------------------------------------
+
+/**
+ * Describes the current spell selection state for a class at a given level.
+ * Registry-based replacement for dndRules.SpellSelectionState.
+ */
+export interface RegistrySpellSelectionState {
+  casterType: SpellcastingType;
+  label: "Prepared spells" | "Known spells" | "Pact spells" | "Spells";
+  maxCantrips: number | null;
+  currentCantrips: number;
+  remainingCantrips: number | null;
+  maxLeveledSpells: number | null;
+  currentLeveledSpells: number;
+  remainingLeveledSpells: number | null;
+  isAtLimit: boolean;
+  isOverLimit: boolean;
+}
+
+export interface RegistrySpellSelectionValidation extends RegistrySpellSelectionState {
+  canAdd: boolean;
+  reason?: string;
+}
+
+function casterTypeLabel(casterType: SpellcastingType): RegistrySpellSelectionState["label"] {
+  switch (casterType) {
+    case "known":
+      return "Known spells";
+    case "prepared":
+      return "Prepared spells";
+    case "pact":
+      return "Pact spells";
+    default:
+      return "Spells";
+  }
+}
+
+/**
+ * Computes spell selection state using the registry.
+ * Drop-in replacement for dndRules.getSpellSelectionState in the character
+ * creation flow.
+ *
+ * @pure
+ */
+export function getRegistrySpellSelectionState(
+  classId: string,
+  characterLevel: number,
+  spellcastingModifier: number,
+  spells: Array<{ level: number }>,
+): RegistrySpellSelectionState {
+  const casterType = getSpellcastingType(classId);
+  const label = casterTypeLabel(casterType);
+  const currentCantrips = spells.filter((s) => s.level === 0).length;
+  const currentLeveledSpells = spells.filter((s) => s.level > 0).length;
+
+  if (casterType === "none") {
+    return {
+      casterType,
+      label,
+      maxCantrips: 0,
+      currentCantrips,
+      remainingCantrips: 0,
+      maxLeveledSpells: 0,
+      currentLeveledSpells,
+      remainingLeveledSpells: 0,
+      isAtLimit: true,
+      isOverLimit: currentCantrips > 0 || currentLeveledSpells > 0,
+    };
+  }
+
+  const cantrip = getCantrips(classId, characterLevel);
+  const maxCantrips = cantrip?.maxKnown ?? null;
+  const maxLeveledSpells = getMaxPreparedSpells(classId, characterLevel, spellcastingModifier);
+
+  const remainingCantrips =
+    maxCantrips === null ? null : Math.max(maxCantrips - currentCantrips, 0);
+  const remainingLeveledSpells =
+    maxLeveledSpells === null ? null : Math.max(maxLeveledSpells - currentLeveledSpells, 0);
+
+  return {
+    casterType,
+    label,
+    maxCantrips,
+    currentCantrips,
+    remainingCantrips,
+    maxLeveledSpells,
+    currentLeveledSpells,
+    remainingLeveledSpells,
+    isAtLimit: maxLeveledSpells !== null && currentLeveledSpells >= maxLeveledSpells,
+    isOverLimit:
+      (maxLeveledSpells !== null && currentLeveledSpells > maxLeveledSpells) ||
+      (maxCantrips !== null && currentCantrips > maxCantrips),
+  };
+}
+
+/**
+ * Validates whether a candidate spell can be added.
+ * Registry-based replacement for dndRules.validateSpellSelection.
+ *
+ * @pure
+ */
+export function validateRegistrySpellSelection(
+  classId: string,
+  characterLevel: number,
+  spellcastingModifier: number,
+  spells: Array<{ level: number }>,
+  candidateSpellLevel: number,
+): RegistrySpellSelectionValidation {
+  const state = getRegistrySpellSelectionState(
+    classId,
+    characterLevel,
+    spellcastingModifier,
+    spells,
+  );
+
+  if (state.casterType === "none") {
+    return { ...state, canAdd: false, reason: "This class does not use spellcasting." };
+  }
+
+  if (candidateSpellLevel <= 0) {
+    if (state.maxCantrips !== null && state.currentCantrips >= state.maxCantrips) {
+      return {
+        ...state,
+        canAdd: false,
+        reason: `Cantrip limit reached (${state.currentCantrips}/${state.maxCantrips}).`,
+      };
+    }
+    return { ...state, canAdd: true };
+  }
+
+  if (state.maxLeveledSpells === null) {
+    return { ...state, canAdd: true };
+  }
+
+  if (state.currentLeveledSpells >= state.maxLeveledSpells) {
+    return {
+      ...state,
+      canAdd: false,
+      reason: `${state.label} limit reached (${state.currentLeveledSpells}/${state.maxLeveledSpells} leveled spells).`,
+    };
+  }
+
+  return { ...state, canAdd: true };
 }
 
 // ---------------------------------------------------------------------------

@@ -10,6 +10,16 @@
 export type GameSystem = "dnd5e" | "dragonbane" | "cyberpunk";
 
 /**
+ * How a class acquires and manages leveled spells.
+ *
+ * Re-exported from RulesRegistry for use in character data without
+ * requiring a direct dependency on the rules layer.
+ *
+ * @see src/lib/rules/RulesRegistry.ts — canonical SpellcastingType
+ */
+export type CasterType = "known" | "prepared" | "pact" | "none";
+
+/**
  * The six core ability scores for D&D 5e characters.
  * Values typically range from 3-20 for player characters.
  */
@@ -252,6 +262,14 @@ export interface DnD5eCharacter {
   preparedSpells?: PreparedSpell[];
   /** Which ability score governs spellcasting */
   spellcastingAbility?: keyof DnD5eAbilityScores;
+  /**
+   * How this class acquires spells: known-list, daily preparation, pact, or none.
+   * Populated by getSpellcastingType() from the RulesRegistry at character creation.
+   *
+   * Absent on legacy characters (pre-CCR-004); defaults to "none" at load time.
+   * @see src/lib/rules/spells.ts — getSpellcastingType()
+   */
+  casterType?: CasterType;
   /**
    * Rules version used to generate this character's spell slots and limits.
    * Populated by the RulesRegistry at character creation or migration.

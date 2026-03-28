@@ -17,11 +17,13 @@ import {
   getRaceByName,
   isSpellcastingClass,
 } from "@/lib/dndCompendium";
+import { getLevelOneHitPoints } from "@/lib/dndRules";
 import {
-  getDefaultSpellSlots,
-  getLevelOneHitPoints,
-  getSpellSelectionState,
-} from "@/lib/dndRules";
+  buildSpellSlots,
+  getRegistrySpellSelectionState,
+  getSpellcastingType,
+} from "@/lib/rules/spells";
+import { getAbilityModifier } from "@/lib/dndRules";
 import {
   applyAbilityBonuses,
   hasRequiredRaceAbilityChoices,
@@ -144,6 +146,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         ])
       );
       const spellcastingAbility = getClassSpellcastingAbility(nextClass);
+      const casterType = getSpellcastingType(nextClass);
       const reconciledPreparedSpells =
         prev.preparedSpells?.filter(
           (spell) => !spell.sourceSpellId || availableSpellIds.has(spell.sourceSpellId)
@@ -156,11 +159,13 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         ...(spellcastingAbility
           ? {
               spellcastingAbility,
-              spellSlots: getDefaultSpellSlots(nextClass, level),
+              casterType,
+              spellSlots: buildSpellSlots(nextClass, level),
               preparedSpells: reconciledPreparedSpells,
             }
           : {
               spellcastingAbility: undefined,
+              casterType: "none" as const,
               spellSlots: undefined,
               preparedSpells: undefined,
             }),
@@ -274,10 +279,11 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         if (!spellcastingAbility) {
           return null;
         }
-        const state = getSpellSelectionState(
+        const spellMod = getAbilityModifier(effectiveAbilityScores[spellcastingAbility]);
+        const state = getRegistrySpellSelectionState(
           character.class,
           character.level || 1,
-          effectiveAbilityScores[spellcastingAbility],
+          spellMod,
           character.preparedSpells || []
         );
         return state.isOverLimit ? "Spell selections exceed class limits." : null;
@@ -371,6 +377,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
     const selectedClass = getClassByName(character.class);
     const selectedRace = getRaceByName(character.race);
     const spellcastingAbility = getClassSpellcastingAbility(character.class);
+    const casterType = getSpellcastingType(character.class);
     const savingThrows =
       character.savingThrows && Object.keys(character.savingThrows).length > 0
         ? character.savingThrows
@@ -387,6 +394,8 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         classId: selectedClass?.id,
         raceId: selectedRace?.id,
         level,
+        rulesVersion: "2024-dnd5e",
+        casterType,
         hitPoints: {
           current: maxHP,
           max: maxHP,
@@ -400,7 +409,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         ...(spellcastingAbility
           ? {
               spellcastingAbility,
-              spellSlots: character.spellSlots || getDefaultSpellSlots(character.class, level),
+              spellSlots: character.spellSlots || buildSpellSlots(character.class, level),
               preparedSpells: character.preparedSpells || [],
             }
           : {

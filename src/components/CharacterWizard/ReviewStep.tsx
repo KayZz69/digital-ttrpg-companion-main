@@ -5,7 +5,8 @@ import { Separator } from "@/components/ui/separator";
 import { User, Shield, Sparkles, Scroll } from "lucide-react";
 import { applyAbilityBonuses } from "@/lib/characterCreationRules";
 import { getClassSpellcastingAbility } from "@/lib/dndCompendium";
-import { getSpellSelectionState } from "@/lib/dndRules";
+import { getAbilityModifier } from "@/lib/dndRules";
+import { getRegistrySpellSelectionState } from "@/lib/rules/spells";
 
 interface ReviewStepProps {
   character: Partial<DnD5eCharacter>;
@@ -29,12 +30,15 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
     character.raceAbilityBonuses
   );
   const spellcastingAbility = getClassSpellcastingAbility(character.class || "");
+  const spellMod = spellcastingAbility
+    ? getAbilityModifier(effectiveAbilityScores[spellcastingAbility])
+    : 0;
   const spellSummary =
     character.class && spellcastingAbility
-      ? getSpellSelectionState(
+      ? getRegistrySpellSelectionState(
           character.class,
           character.level || 1,
-          effectiveAbilityScores[spellcastingAbility],
+          spellMod,
           character.preparedSpells || []
         )
       : null;
@@ -144,7 +148,7 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
           <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
             {spellSummary && (
               <p>
-                Spellcasting: {spellSummary.mode === "known" ? "Known" : "Prepared"} | Cantrips{" "}
+                Spellcasting: {spellSummary.casterType === "known" ? "Known" : spellSummary.casterType === "pact" ? "Pact" : "Prepared"} | Cantrips{" "}
                 {spellSummary.currentCantrips}
                 {spellSummary.maxCantrips !== null ? `/${spellSummary.maxCantrips}` : ""} | Leveled{" "}
                 {spellSummary.currentLeveledSpells}
