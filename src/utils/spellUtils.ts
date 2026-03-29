@@ -6,7 +6,7 @@
 
 import type { PreparedSpell, SpellSlots } from "@/types/character";
 import { getClassByName } from "@/lib/dndCompendium";
-import { getDefaultSpellSlots } from "@/lib/dndRules";
+import { toCharacterSpellSlots } from "@/lib/rules/spells";
 
 /**
  * Returns true if the spell has the ritual tag AND the character's class
@@ -81,12 +81,12 @@ export function restoreSpellSlots(
 ): SpellSlots {
     if (restType === "long") {
         // Long rest: restore all slots to their class/level max
-        return getDefaultSpellSlots(className, level);
+        return toCharacterSpellSlots(className, level);
     }
 
     // Short rest: only Warlocks recover pact magic slots
     if (isPactMagicCaster(className)) {
-        return getDefaultSpellSlots(className, level);
+        return toCharacterSpellSlots(className, level);
     }
 
     // Non-Warlock short rest: no spell slot change

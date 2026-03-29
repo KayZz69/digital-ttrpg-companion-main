@@ -17,11 +17,12 @@ import {
   getRaceByName,
   isSpellcastingClass,
 } from "@/lib/dndCompendium";
+import { getLevelOneHitPoints } from "@/lib/dndRules";
 import {
-  getDefaultSpellSlots,
-  getLevelOneHitPoints,
-  getSpellSelectionState,
-} from "@/lib/dndRules";
+  getRegistrySpellSelectionState,
+  getSpellcastingType,
+  toCharacterSpellSlots,
+} from "@/lib/rules/spells";
 import {
   applyAbilityBonuses,
   hasRequiredRaceAbilityChoices,
@@ -149,6 +150,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
           (spell) => !spell.sourceSpellId || availableSpellIds.has(spell.sourceSpellId)
         ) || [];
 
+      const castingType = getSpellcastingType(nextClass);
       return {
         ...prev,
         savingThrows: getClassSavingThrowProficiencies(nextClass),
@@ -156,11 +158,13 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         ...(spellcastingAbility
           ? {
               spellcastingAbility,
-              spellSlots: getDefaultSpellSlots(nextClass, level),
+              spellcastingType: castingType,
+              spellSlots: toCharacterSpellSlots(nextClass, level),
               preparedSpells: reconciledPreparedSpells,
             }
           : {
               spellcastingAbility: undefined,
+              spellcastingType: castingType,
               spellSlots: undefined,
               preparedSpells: undefined,
             }),
@@ -274,7 +278,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         if (!spellcastingAbility) {
           return null;
         }
-        const state = getSpellSelectionState(
+        const state = getRegistrySpellSelectionState(
           character.class,
           character.level || 1,
           effectiveAbilityScores[spellcastingAbility],
@@ -371,6 +375,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
     const selectedClass = getClassByName(character.class);
     const selectedRace = getRaceByName(character.race);
     const spellcastingAbility = getClassSpellcastingAbility(character.class);
+    const castingType = getSpellcastingType(character.class);
     const savingThrows =
       character.savingThrows && Object.keys(character.savingThrows).length > 0
         ? character.savingThrows
@@ -386,6 +391,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         abilityScores: effectiveAbilityScores,
         classId: selectedClass?.id,
         raceId: selectedRace?.id,
+        rulesVersion: "2024-dnd5e",
         level,
         hitPoints: {
           current: maxHP,
@@ -400,11 +406,13 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         ...(spellcastingAbility
           ? {
               spellcastingAbility,
-              spellSlots: character.spellSlots || getDefaultSpellSlots(character.class, level),
+              spellcastingType: castingType,
+              spellSlots: character.spellSlots || toCharacterSpellSlots(character.class, level),
               preparedSpells: character.preparedSpells || [],
             }
           : {
               spellcastingAbility: undefined,
+              spellcastingType: castingType,
               spellSlots: undefined,
               preparedSpells: undefined,
             }),

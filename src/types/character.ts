@@ -3,6 +3,10 @@
  * Supports D&D 5e character sheets with plans for other game systems.
  */
 
+import type { SpellcastingType } from "@/lib/rules/RulesRegistry";
+
+export type { SpellcastingType };
+
 /**
  * Supported tabletop RPG game systems.
  * Currently only D&D 5e is fully implemented.
@@ -252,6 +256,20 @@ export interface DnD5eCharacter {
   preparedSpells?: PreparedSpell[];
   /** Which ability score governs spellcasting */
   spellcastingAbility?: keyof DnD5eAbilityScores;
+  /**
+   * How this class acquires leveled spells.
+   *
+   * - `"known"`    — fixed spell list (Bard, Sorcerer)
+   * - `"prepared"` — daily preparation from full class list (Cleric, Druid, Paladin, Ranger, Wizard)
+   * - `"pact"`     — warlock pact magic (short-rest recovery, single slot level)
+   * - `"none"`     — non-spellcasting class
+   *
+   * Populated from the RulesRegistry at character creation (CCR-004).
+   * Absent on legacy characters (pre-CCR-004); treat as derived from class name.
+   *
+   * @see src/lib/rules/RulesRegistry.ts — SpellcastingType
+   */
+  spellcastingType?: SpellcastingType;
   /**
    * Rules version used to generate this character's spell slots and limits.
    * Populated by the RulesRegistry at character creation or migration.
