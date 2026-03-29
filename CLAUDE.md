@@ -119,3 +119,8 @@ Local skills live in `.claude/skills/`. Check them before starting specialized w
 - `changelog-generator`
 - `feature-test-writer`
 - `rules-content-author`
+
+## Agent Behaviour Rules
+- **Read before writing:** Always read existing code, patterns, and conventions in the relevant files before writing any new code. Do not introduce patterns that don't already exist in the codebase.
+- **Verify tools before using:** Never assume an MCP server, external tool, or CLI exists. Verify availability before calling it (check settings, run a list command, or read config).
+- **Full codebase scope:** When asked to review the codebase, default to ALL files â€” not just recent changes or diffs â€” unless explicitly told otherwise.
