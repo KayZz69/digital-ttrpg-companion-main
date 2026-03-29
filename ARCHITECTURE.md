@@ -46,6 +46,24 @@ Changing key names or stored JSON shape is a breaking change for existing local 
 - Current intentional deviation:
   - Starting equipment package data is a curated rules-safe subset represented in `src/data/startingEquipment.ts`; gold-buy remains available as an alternative mode.
 
+### 2024 PHB Decision Record (CCR-001)
+
+**Decision:** The 2024 Player's Handbook (D&D 5e revised) is the single authoritative ruleset for all game mechanics in this project.
+
+**Enforcing modules:**
+
+| Module | Role |
+|--------|------|
+| `src/lib/rules/RulesRegistry.ts` | Declares `rulesVersion: "2024-dnd5e"` as the registry baseline |
+| `src/lib/rules/spells.ts` | Spell slot, cantrip, and known/prepared tables sourced from 2024 PHB Chapter 7 |
+| `src/lib/rules/equipment.ts` | Starting equipment rules aligned with 2024 PHB |
+| `src/pages/CharacterWizard.tsx` | Stamps `rulesVersion: "2024-dnd5e"` on every new character |
+| `src/data/classes.ts`, `src/data/races.ts` | Static datasets reflect 2024 PHB content |
+
+**Legacy handling:** Characters created before CCR-002 lack a `rulesVersion` field. The migration layer in `src/lib/storage.ts` (`migrateCharacterRecord`) defaults missing `rulesVersion` to `"2024-dnd5e"` at load time. No 2014-specific data paths exist.
+
+**Future:** If 2014 PHB support is ever needed, it would be implemented as a separate `RulesRegistry` with its own spell slot tables, cantrip progression, and known/prepared limits — not as conditional branches in the existing 2024 implementation.
+
 ## Layer Structure
 
 | Layer | Path | Purpose |
