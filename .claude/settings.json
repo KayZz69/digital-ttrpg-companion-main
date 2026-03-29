@@ -1,0 +1,15 @@
+﻿{
+    "hooks":  {
+                  "PostToolUse":  [
+                                      {
+                                          "hooks":  [
+                                                        {
+                                                            "command":  "echo \u0027Tool use complete\u0027",
+                                                            "type":  "command"
+                                                        }
+                                                    ],
+                                          "matcher":  "Bash"
+                                      }
+                                  ]
+              }
+}
