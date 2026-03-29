@@ -14,11 +14,11 @@ import {
   toPreparedSpell,
 } from "@/lib/dndCompendium";
 import {
-  getDefaultSpellSlots,
-  getHighestSlotLevel,
-  getSpellSelectionState,
-  validateSpellSelection,
-} from "@/lib/dndRules";
+  getHighestAvailableSlotLevel,
+  getRegistrySpellSelectionState,
+  toCharacterSpellSlots,
+  validateRegistrySpellSelection,
+} from "@/lib/rules/spells";
 import { applyAbilityBonuses } from "@/lib/characterCreationRules";
 
 interface SpellSelectionStepProps {
@@ -47,8 +47,7 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
     );
   }
 
-  const slotTemplate = getDefaultSpellSlots(className, level);
-  const highestSlotLevel = getHighestSlotLevel(slotTemplate);
+  const highestSlotLevel = getHighestAvailableSlotLevel(className, level);
   const classSpells = getClassSpells(className);
   const spellcastingAbility = getClassSpellcastingAbility(className);
   const effectiveAbilityScores = character.abilityScores
@@ -58,7 +57,7 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
     spellcastingAbility && effectiveAbilityScores
       ? effectiveAbilityScores[spellcastingAbility] || 10
       : 10;
-  const spellSelectionState = getSpellSelectionState(
+  const spellSelectionState = getRegistrySpellSelectionState(
     className,
     level,
     spellcastingScore,
@@ -100,7 +99,7 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
       return;
     }
 
-    const validation = validateSpellSelection(
+    const validation = validateRegistrySpellSelection(
       className,
       level,
       spellcastingScore,

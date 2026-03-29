@@ -12,10 +12,14 @@
 import { describe, expect, it } from "vitest";
 import {
   getCantrips,
+  getHighestAvailableSlotLevel,
   getMaxPreparedSpells,
+  getRegistrySpellSelectionState,
   getRules,
   getSpellSlots,
   getSpellcastingType,
+  toCharacterSpellSlots,
+  validateRegistrySpellSelection,
 } from "../spells";
 
 // ---------------------------------------------------------------------------
@@ -477,5 +481,153 @@ describe("Integration: full progression for all casters", () => {
     expect(cantrips?.damageDice).toBe(2); // level 5 upgrade
     expect(maxPrepared).toBe(8); // 5 + 3
     expect(castingType).toBe("prepared");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CCR-003: Character-model adapters
+// ---------------------------------------------------------------------------
+
+describe("toCharacterSpellSlots", () => {
+  it("wizard level 5 produces correct SpellSlots shape", () => {
+    const slots = toCharacterSpellSlots("wizard", 5);
+    expect(slots.level1).toEqual({ current: 4, max: 4 });
+    expect(slots.level2).toEqual({ current: 3, max: 3 });
+    expect(slots.level3).toEqual({ current: 2, max: 2 });
+    expect(slots.level4).toEqual({ current: 0, max: 0 });
+  });
+
+  it("non-caster returns all zeroes", () => {
+    const slots = toCharacterSpellSlots("fighter", 10);
+    for (let l = 1; l <= 9; l++) {
+      const key = `level${l}` as keyof typeof slots;
+      expect(slots[key]).toEqual({ current: 0, max: 0 });
+    }
+  });
+
+  it("warlock has single slot level populated", () => {
+    const slots = toCharacterSpellSlots("warlock", 5);
+    expect(slots.level3).toEqual({ current: 2, max: 2 });
+    expect(slots.level1).toEqual({ current: 0, max: 0 });
+    expect(slots.level2).toEqual({ current: 0, max: 0 });
+  });
+
+  it("paladin level 1 has no slots", () => {
+    const slots = toCharacterSpellSlots("paladin", 1);
+    for (let l = 1; l <= 9; l++) {
+      const key = `level${l}` as keyof typeof slots;
+      expect(slots[key]).toEqual({ current: 0, max: 0 });
+    }
+  });
+
+  it("paladin level 2 has first-level slots", () => {
+    const slots = toCharacterSpellSlots("paladin", 2);
+    expect(slots.level1).toEqual({ current: 2, max: 2 });
+  });
+});
+
+describe("getHighestAvailableSlotLevel", () => {
+  it("wizard level 5 → 3", () => {
+    expect(getHighestAvailableSlotLevel("wizard", 5)).toBe(3);
+  });
+
+  it("wizard level 20 → 9", () => {
+    expect(getHighestAvailableSlotLevel("wizard", 20)).toBe(9);
+  });
+
+  it("fighter → 0", () => {
+    expect(getHighestAvailableSlotLevel("fighter", 10)).toBe(0);
+  });
+
+  it("warlock level 9 → 5", () => {
+    expect(getHighestAvailableSlotLevel("warlock", 9)).toBe(5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CCR-003: Registry-backed spell selection state
+// ---------------------------------------------------------------------------
+
+describe("getRegistrySpellSelectionState", () => {
+  it("returns mode=none for non-caster", () => {
+    const state = getRegistrySpellSelectionState("fighter", 1, 10, []);
+    expect(state.mode).toBe("none");
+    expect(state.maxCantrips).toBe(0);
+    expect(state.maxLeveledSpells).toBeNull();
+  });
+
+  it("wizard is prepared mode", () => {
+    const state = getRegistrySpellSelectionState("wizard", 5, 16, []);
+    expect(state.mode).toBe("prepared");
+    expect(state.label).toBe("Prepared spells");
+    // 2024 PHB: wizard level 5 = 4 cantrips
+    expect(state.maxCantrips).toBe(4);
+    // level + mod = 5 + 3 = 8
+    expect(state.maxLeveledSpells).toBe(8);
+  });
+
+  it("bard is known mode", () => {
+    const state = getRegistrySpellSelectionState("bard", 1, 16, []);
+    expect(state.mode).toBe("known");
+    expect(state.label).toBe("Known spells");
+  });
+
+  it("warlock is known mode (pact maps to known)", () => {
+    const state = getRegistrySpellSelectionState("warlock", 1, 16, []);
+    expect(state.mode).toBe("known");
+  });
+
+  it("tracks current counts and remaining", () => {
+    const spells = [
+      { level: 0 }, { level: 0 }, // 2 cantrips
+      { level: 1 }, { level: 1 }, { level: 2 }, // 3 leveled
+    ];
+    const state = getRegistrySpellSelectionState("wizard", 5, 16, spells);
+    expect(state.currentCantrips).toBe(2);
+    expect(state.currentLeveledSpells).toBe(3);
+    expect(state.remainingCantrips).toBe(2); // 4 - 2
+    expect(state.remainingLeveledSpells).toBe(5); // 8 - 3
+    expect(state.isAtLimit).toBe(false);
+    expect(state.isOverLimit).toBe(false);
+  });
+
+  it("detects over-limit for cantrips", () => {
+    // wizard level 1 = 3 cantrips max, give 4
+    const spells = [{ level: 0 }, { level: 0 }, { level: 0 }, { level: 0 }];
+    const state = getRegistrySpellSelectionState("wizard", 1, 16, spells);
+    expect(state.isOverLimit).toBe(true);
+  });
+});
+
+describe("validateRegistrySpellSelection", () => {
+  it("non-caster cannot add", () => {
+    const result = validateRegistrySpellSelection("fighter", 1, 10, [], 1);
+    expect(result.canAdd).toBe(false);
+    expect(result.reason).toContain("does not use spellcasting");
+  });
+
+  it("allows adding cantrip when under limit", () => {
+    const result = validateRegistrySpellSelection("wizard", 1, 16, [], 0);
+    expect(result.canAdd).toBe(true);
+  });
+
+  it("blocks cantrip at limit", () => {
+    const cantrips = [{ level: 0 }, { level: 0 }, { level: 0 }]; // wizard level 1 = 3 max
+    const result = validateRegistrySpellSelection("wizard", 1, 16, cantrips, 0);
+    expect(result.canAdd).toBe(false);
+    expect(result.reason).toContain("Cantrip limit");
+  });
+
+  it("allows adding leveled spell when under limit", () => {
+    const result = validateRegistrySpellSelection("wizard", 5, 16, [], 1);
+    expect(result.canAdd).toBe(true);
+  });
+
+  it("blocks leveled spell at limit", () => {
+    // wizard level 5, mod +3 = 8 max. Fill 8 spells.
+    const spells = Array.from({ length: 8 }, () => ({ level: 1 }));
+    const result = validateRegistrySpellSelection("wizard", 5, 16, spells, 1);
+    expect(result.canAdd).toBe(false);
+    expect(result.reason).toContain("limit reached");
   });
 });
