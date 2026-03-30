@@ -4,6 +4,7 @@ import { JournalEntry } from "@/types/journal";
 import { NPC } from "@/types/npc";
 import { getAllSpells } from "@/data";
 import { formatSpellComponents, getClassByName, getRaceByName } from "@/lib/dndCompendium";
+import { getSpellcastingType, toCharacterSpellSlots } from "@/lib/rules/spells";
 
 export const STORAGE_KEYS = {
   characters: "soloquest_characters",
@@ -154,6 +155,12 @@ const normalizePreparedSpell = (spell: unknown, index: number) => {
       (sourceSpell ? formatSpellComponents(sourceSpell.components) : ""),
     duration: toTrimmedString(spell.duration) || sourceSpell?.duration || "",
     description: toTrimmedString(spell.description) || sourceSpell?.description || "",
+    concentration:
+      typeof spell.concentration === "boolean"
+        ? spell.concentration
+        : sourceSpell?.concentration ?? false,
+    ritual:
+      typeof spell.ritual === "boolean" ? spell.ritual : sourceSpell?.ritual ?? false,
   };
 };
 
@@ -184,11 +191,34 @@ const migrateCharacterRecord = (character: Character): Character => {
     .map((spell, index) => normalizePreparedSpell(spell, index))
     .filter((spell): spell is NonNullable<typeof spell> => spell !== null);
 
+  const spellcastingType =
+    typeof data.spellcastingType === "string"
+      ? data.spellcastingType
+      : getSpellcastingType(className);
+
+  const rulesVersion =
+    typeof data.rulesVersion === "string" ? data.rulesVersion : "2024-dnd5e";
+
+  const level = typeof data.level === "number" ? data.level : 1;
+  const existingSlots = data.spellSlots;
+  const hasValidSlots =
+    isRecord(existingSlots) &&
+    Object.values(existingSlots).some(
+      (slot) => isRecord(slot) && typeof slot.max === "number" && slot.max > 0,
+    );
+  const spellSlots =
+    spellcastingType !== "none" && !hasValidSlots
+      ? toCharacterSpellSlots(className, level)
+      : existingSlots;
+
   const migratedData = {
     ...data,
     classId:
       typeof data.classId === "string" ? data.classId : getClassByName(className)?.id,
     raceId: typeof data.raceId === "string" ? data.raceId : getRaceByName(raceName)?.id,
+    spellcastingType,
+    rulesVersion,
+    spellSlots,
     inventory,
     preparedSpells,
   };
