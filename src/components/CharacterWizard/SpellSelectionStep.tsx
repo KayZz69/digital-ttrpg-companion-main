@@ -16,8 +16,8 @@ import {
 import {
   getHighestAvailableSlotLevel,
   getRegistrySpellSelectionState,
-  toCharacterSpellSlots,
   validateRegistrySpellSelection,
+  validateSpellStepComplete,
 } from "@/lib/rules/spells";
 import { applyAbilityBonuses } from "@/lib/characterCreationRules";
 
@@ -58,6 +58,12 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
       ? effectiveAbilityScores[spellcastingAbility] || 10
       : 10;
   const spellSelectionState = getRegistrySpellSelectionState(
+    className,
+    level,
+    spellcastingScore,
+    selectedSpells
+  );
+  const stepValidation = validateSpellStepComplete(
     className,
     level,
     spellcastingScore,
@@ -143,10 +149,12 @@ export const SpellSelectionStep = ({ character, setCharacter }: SpellSelectionSt
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {spellSelectionState.isOverLimit && (
-            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Spell selections exceed class limits. Remove cantrips or leveled spells to continue.
-            </p>
+          {!stepValidation.isComplete && stepValidation.errors.length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive space-y-1">
+              {stepValidation.errors.map((error, i) => (
+                <p key={i}>{error}</p>
+              ))}
+            </div>
           )}
           <Input
             placeholder="Search spells by name or school..."
