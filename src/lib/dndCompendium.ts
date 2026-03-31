@@ -16,6 +16,8 @@ import {
   type Spell,
   type Weapon,
 } from "@/data";
+import { equipment as equipmentRegistry } from "@/lib/rules/equipment";
+import type { BackgroundEquipmentRule } from "@/lib/rules/RulesRegistry";
 import {
   type DnD5eAbilityScores,
   type InventoryItem,
@@ -136,9 +138,42 @@ export function getClassStartingEquipmentChoices(className: string): StartingEqu
     return [];
   }
 
+  // Prefer registry data (structured EquipmentPackageItem entries)
+  const registryRule = equipmentRegistry.getEquipmentRules(cls.id);
+  if (registryRule && registryRule.packages.length > 0) {
+    return registryRule.packages.map((pkg) => ({
+      id: pkg.id,
+      label: pkg.label,
+      items: pkg.items.map((entry) => ({
+        itemName: entry.itemName,
+        quantity: entry.quantity,
+      })),
+    }));
+  }
+
+  // Fallback: class static data, then legacy startingEquipment.ts
   return cls.startingEquipment && cls.startingEquipment.length > 0
     ? cls.startingEquipment
     : getClassEquipmentChoicesFromData(cls.id);
+}
+
+/**
+ * Returns the class starting gold budget from the equipment registry.
+ */
+export function getClassStartingGoldGP(className: string): number {
+  const cls = getClassByName(className);
+  if (!cls) {
+    return 100;
+  }
+  const registryRule = equipmentRegistry.getEquipmentRules(cls.id);
+  return registryRule?.startingGoldGP ?? 100;
+}
+
+/**
+ * Returns background equipment rules from the registry.
+ */
+export function getBackgroundEquipmentRules(backgroundId: string): BackgroundEquipmentRule | null {
+  return equipmentRegistry.getBackgroundEquipmentRules(backgroundId);
 }
 
 export function getAllBackgroundDefinitions(): Background[] {

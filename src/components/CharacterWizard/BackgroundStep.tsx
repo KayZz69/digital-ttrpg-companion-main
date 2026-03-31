@@ -65,6 +65,9 @@ export const BackgroundStep = ({ character, setCharacter }: BackgroundStepProps)
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
+                {background.description && (
+                  <p className="text-sm italic text-muted-foreground">{background.description}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Granted Skills:</p>
                 <div className="flex flex-wrap gap-2">
                   {background.skills.map((skill) => (
@@ -73,6 +76,48 @@ export const BackgroundStep = ({ character, setCharacter }: BackgroundStepProps)
                     </Badge>
                   ))}
                 </div>
+                {background.tools && background.tools.length > 0 && (
+                  <>
+                    <p className="text-sm text-muted-foreground">Tool Proficiencies:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {background.tools.map((tool) => (
+                        <Badge key={tool} variant="outline" className="text-xs">
+                          {tool}
+                        </Badge>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {background.languages && background.languages.length > 0 && (
+                  <>
+                    <p className="text-sm text-muted-foreground">Languages:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {background.languages.map((lang) => (
+                        <Badge key={lang} variant="outline" className="text-xs">
+                          {lang}
+                        </Badge>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {background.equipment && background.equipment.length > 0 && (
+                  <>
+                    <p className="text-sm text-muted-foreground">Starting Equipment:</p>
+                    <p className="text-sm">
+                      {background.equipment.map((item, idx) => (
+                        <span key={item.itemName}>
+                          {item.quantity && item.quantity > 1
+                            ? `${item.itemName} (x${item.quantity})`
+                            : item.itemName}
+                          {idx < background.equipment!.length - 1 ? ", " : ""}
+                        </span>
+                      ))}
+                      {background.startingGoldGP !== undefined && (
+                        <span> + {background.startingGoldGP} gp</span>
+                      )}
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           );
@@ -81,4 +126,3 @@ export const BackgroundStep = ({ character, setCharacter }: BackgroundStepProps)
     </div>
   );
 };
-

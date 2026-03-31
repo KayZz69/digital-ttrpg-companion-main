@@ -13,9 +13,9 @@ import {
   getAllCompendiumEquipment,
   getClassByName,
   getClassStartingEquipmentChoices,
+  getClassStartingGoldGP,
   toInventoryItem,
 } from "@/lib/dndCompendium";
-import { getStartingGoldBudget } from "@/data";
 
 interface StartingEquipmentStepProps {
   character: Partial<DnD5eCharacter>;
@@ -57,7 +57,7 @@ export const StartingEquipmentStep = ({
     () => new Map(compendiumItems.map((entry) => [entry.id, entry])),
     [compendiumItems]
   );
-  const startingGoldBudget = classData ? getStartingGoldBudget(classData.id) : 100;
+  const startingGoldBudget = classData ? getClassStartingGoldGP(classData.name) : 100;
 
   useEffect(() => {
     if (classEquipmentChoices.length === 0) {

@@ -69,6 +69,10 @@ export interface Background {
   tools?: string[];
   languages?: string[];
   description?: string;
+  /** Starting equipment granted by this background */
+  equipment?: StartingEquipmentItem[];
+  /** Starting gold granted by this background (in gp) */
+  startingGoldGP?: number;
 }
 
 export interface Spell {

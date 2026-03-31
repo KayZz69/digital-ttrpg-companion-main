@@ -45,8 +45,19 @@ export interface Cantrip {
 }
 
 /**
+ * A single item entry in a starting equipment package.
+ *
+ * @see 2024 PHB — "Starting Equipment" (each class section)
+ */
+export interface EquipmentPackageItem {
+  /** Display name matching a compendium entry (e.g. "Longsword") */
+  readonly itemName: string;
+  /** Number of this item granted (defaults to 1 if omitted) */
+  readonly quantity?: number;
+}
+
+/**
  * Equipment rule for a starting class package.
- * Full implementation deferred to CCR-007.
  *
  * @see 2024 PHB — "Starting Equipment" (each class section)
  */
@@ -55,15 +66,29 @@ export interface EquipmentRule {
   readonly classId: string;
   /**
    * Named equipment packages the player may choose from.
-   * Each package is a human-readable list of items.
+   * Each package contains structured item entries with names and quantities.
    */
   readonly packages: ReadonlyArray<{
     readonly id: string;
     readonly label: string;
-    /** Item names in this package (display only; linking deferred to CCR-007) */
-    readonly items: ReadonlyArray<string>;
+    /** Structured item entries in this package */
+    readonly items: ReadonlyArray<EquipmentPackageItem>;
   }>;
   /** Starting gold (in gp) if the player chooses gold-buy mode */
+  readonly startingGoldGP: number;
+}
+
+/**
+ * Equipment granted by a background.
+ *
+ * @see 2024 PHB — Backgrounds (Chapter 4)
+ */
+export interface BackgroundEquipmentRule {
+  /** Background identifier (lowercase, e.g. "acolyte") */
+  readonly backgroundId: string;
+  /** Items granted by this background */
+  readonly items: ReadonlyArray<EquipmentPackageItem>;
+  /** Starting gold granted by this background (in gp) */
   readonly startingGoldGP: number;
 }
 

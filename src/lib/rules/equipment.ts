@@ -1,53 +1,65 @@
 /**
- * @fileoverview Equipment rules stub for D&D 5e 2024.
+ * @fileoverview Full equipment rules implementation for D&D 5e 2024 PHB.
  *
- * Full implementation is deferred to CCR-007 (Equipment rules rewrite).
- * This stub satisfies the RulesRegistry.getEquipmentRules contract and
- * provides class stubs so consumers can reference valid class IDs.
+ * Provides structured starting equipment packages for all 12 core classes
+ * and equipment grants for all 13 backgrounds from the 2024 Player's Handbook.
  *
- * @see ROADMAP.md — CCR-007: Equipment rules, starting equipment rewrite
  * @see 2024 PHB — "Starting Equipment" (each class section, Chapter 7)
+ * @see 2024 PHB — Backgrounds (Chapter 4)
  */
 
-import type { EquipmentRule } from "./RulesRegistry";
+import type { BackgroundEquipmentRule, EquipmentPackageItem, EquipmentRule } from "./RulesRegistry";
 
 // ---------------------------------------------------------------------------
-// Interface (extensible per CCR-007)
+// Interface
 // ---------------------------------------------------------------------------
 
 /**
- * Stub equipment registry interface.
- * Extend this in CCR-007 when full item linking is implemented.
+ * Equipment registry providing starting equipment lookups for classes
+ * and backgrounds.
  */
 export interface EquipmentRegistry {
-  /**
-   * Returns starting equipment rules for a class.
-   * Returns null for unknown classes or until CCR-007 is implemented.
-   */
+  /** Returns starting equipment rules for a class. */
   getEquipmentRules(classId: string): EquipmentRule | null;
+  /** Returns starting equipment rules for a background. */
+  getBackgroundEquipmentRules(backgroundId: string): BackgroundEquipmentRule | null;
 }
 
 // ---------------------------------------------------------------------------
-// Stub data
+// Helper
+// ---------------------------------------------------------------------------
+
+/** Shorthand for creating an EquipmentPackageItem. */
+function item(itemName: string, quantity?: number): EquipmentPackageItem {
+  return quantity != null ? { itemName, quantity } : { itemName };
+}
+
+// ---------------------------------------------------------------------------
+// Class equipment data
 // ---------------------------------------------------------------------------
 
 /**
- * Minimal starting equipment stubs per class.
- * Items are display-only strings; full item linking deferred to CCR-007.
+ * Starting equipment packages per class.
  *
  * @see 2024 PHB — "Starting Equipment" in each class section
+ * @see src/data/startingEquipment.ts — authoritative item names and quantities
  */
-const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
+const CLASS_EQUIPMENT: Readonly<Record<string, EquipmentRule>> = {
   barbarian: {
     classId: "barbarian",
     packages: [
       {
         id: "barbarian-a",
         label: "Package A",
-        items: ["Greataxe", "4 Handaxes", "Explorer's Pack", "15 GP"],
+        items: [
+          item("Greataxe"),
+          item("Handaxe", 2),
+          item("Explorer's Pack"),
+          item("Javelin", 4),
+        ],
       },
     ],
-    startingGoldGP: 75, // Default 75 gp (approximated, full rules in CCR-007)
+    startingGoldGP: 75,
   },
   bard: {
     classId: "bard",
@@ -55,10 +67,15 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "bard-a",
         label: "Package A",
-        items: ["Rapier", "Diplomat's Pack", "Lute", "Leather Armor", "Dagger"],
+        items: [
+          item("Rapier"),
+          item("Dagger"),
+          item("Leather Armor"),
+          item("Entertainer's Pack"),
+        ],
       },
     ],
-    startingGoldGP: 125, // 2024 PHB: 5d4 × 10 gp average
+    startingGoldGP: 125,
   },
   cleric: {
     classId: "cleric",
@@ -66,7 +83,12 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "cleric-a",
         label: "Package A",
-        items: ["Mace", "Scale Mail", "Light Crossbow", "20 Bolts", "Priest's Pack", "Shield", "Holy Symbol"],
+        items: [
+          item("Mace"),
+          item("Chain Mail"),
+          item("Amulet"),
+          item("Priest's Pack"),
+        ],
       },
     ],
     startingGoldGP: 125,
@@ -77,7 +99,12 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "druid-a",
         label: "Package A",
-        items: ["Wooden Shield", "Scimitar", "Explorer's Pack", "Druidic Focus"],
+        items: [
+          item("Quarterstaff"),
+          item("Hide Armor"),
+          item("Explorer's Pack"),
+          item("Dagger"),
+        ],
       },
     ],
     startingGoldGP: 50,
@@ -88,12 +115,22 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "fighter-a",
         label: "Package A (Martial)",
-        items: ["Chain Mail", "Martial Weapon", "Shield", "Light Crossbow", "20 Bolts", "Dungeoneer's Pack"],
+        items: [
+          item("Chain Mail"),
+          item("Longsword"),
+          item("Light Crossbow"),
+          item("Dungeoneer's Pack"),
+        ],
       },
       {
         id: "fighter-b",
         label: "Package B (Ranged)",
-        items: ["Leather Armor", "Longbow", "20 Arrows", "Two Handaxes", "Dungeoneer's Pack"],
+        items: [
+          item("Studded Leather Armor"),
+          item("Longbow"),
+          item("Shortsword", 2),
+          item("Explorer's Pack"),
+        ],
       },
     ],
     startingGoldGP: 175,
@@ -104,7 +141,11 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "monk-a",
         label: "Package A",
-        items: ["Shortsword", "Dungeoneer's Pack", "10 Darts"],
+        items: [
+          item("Shortsword"),
+          item("Dungeoneer's Pack"),
+          item("Dart", 10),
+        ],
       },
     ],
     startingGoldGP: 12,
@@ -115,7 +156,12 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "paladin-a",
         label: "Package A",
-        items: ["Martial Weapon", "Shield", "5 Javelins", "Priest's Pack", "Chain Mail", "Holy Symbol"],
+        items: [
+          item("Chain Mail"),
+          item("Longsword"),
+          item("Javelin", 5),
+          item("Priest's Pack"),
+        ],
       },
     ],
     startingGoldGP: 175,
@@ -126,7 +172,12 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "ranger-a",
         label: "Package A",
-        items: ["Scale Mail", "Two Shortswords", "Dungeoneer's Pack", "Longbow", "20 Arrows"],
+        items: [
+          item("Studded Leather Armor"),
+          item("Longbow"),
+          item("Shortsword", 2),
+          item("Explorer's Pack"),
+        ],
       },
     ],
     startingGoldGP: 125,
@@ -137,7 +188,13 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "rogue-a",
         label: "Package A",
-        items: ["Rapier", "Shortbow", "20 Arrows", "Burglar's Pack", "Leather Armor", "Two Daggers", "Thieves' Tools"],
+        items: [
+          item("Rapier"),
+          item("Shortbow"),
+          item("Leather Armor"),
+          item("Burglar's Pack"),
+          item("Thieves' Tools"),
+        ],
       },
     ],
     startingGoldGP: 100,
@@ -148,7 +205,12 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "sorcerer-a",
         label: "Package A",
-        items: ["Light Crossbow", "20 Bolts", "Arcane Focus", "Dungeoneer's Pack", "Two Daggers"],
+        items: [
+          item("Light Crossbow"),
+          item("Dagger", 2),
+          item("Component Pouch"),
+          item("Explorer's Pack"),
+        ],
       },
     ],
     startingGoldGP: 75,
@@ -159,7 +221,12 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "warlock-a",
         label: "Package A",
-        items: ["Light Crossbow", "20 Bolts", "Arcane Focus", "Scholar's Pack", "Leather Armor", "Two Daggers"],
+        items: [
+          item("Light Crossbow"),
+          item("Leather Armor"),
+          item("Component Pouch"),
+          item("Scholar's Pack"),
+        ],
       },
     ],
     startingGoldGP: 100,
@@ -170,10 +237,149 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
       {
         id: "wizard-a",
         label: "Package A",
-        items: ["Quarterstaff", "Arcane Focus", "Scholar's Pack", "Spellbook"],
+        items: [
+          item("Quarterstaff"),
+          item("Spellbook"),
+          item("Component Pouch"),
+          item("Scholar's Pack"),
+        ],
       },
     ],
     startingGoldGP: 75,
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Background equipment data
+// ---------------------------------------------------------------------------
+
+/**
+ * Starting equipment granted by each background.
+ *
+ * @see 2024 PHB — Backgrounds (Chapter 4)
+ */
+const BACKGROUND_EQUIPMENT: Readonly<Record<string, BackgroundEquipmentRule>> = {
+  acolyte: {
+    backgroundId: "acolyte",
+    items: [
+      item("Holy Symbol"),
+      item("Prayer Book"),
+      item("Vestments"),
+    ],
+    startingGoldGP: 8,
+  },
+  charlatan: {
+    backgroundId: "charlatan",
+    items: [
+      item("Disguise Kit"),
+      item("Forgery Kit"),
+      item("Fine Clothes"),
+    ],
+    startingGoldGP: 15,
+  },
+  criminal: {
+    backgroundId: "criminal",
+    items: [
+      item("Crowbar"),
+      item("Dark Clothes"),
+      item("Thieves' Tools"),
+    ],
+    startingGoldGP: 15,
+  },
+  entertainer: {
+    backgroundId: "entertainer",
+    items: [
+      item("Musical Instrument"),
+      item("Costume Clothes"),
+    ],
+    startingGoldGP: 11,
+  },
+  "folk-hero": {
+    backgroundId: "folk-hero",
+    items: [
+      item("Artisan's Tools"),
+      item("Shovel"),
+      item("Iron Pot"),
+      item("Common Clothes"),
+    ],
+    startingGoldGP: 10,
+  },
+  "guild-artisan": {
+    backgroundId: "guild-artisan",
+    items: [
+      item("Artisan's Tools"),
+      item("Letter of Introduction"),
+      item("Traveler's Clothes"),
+    ],
+    startingGoldGP: 15,
+  },
+  hermit: {
+    backgroundId: "hermit",
+    items: [
+      item("Herbalism Kit"),
+      item("Blanket"),
+      item("Scroll Case"),
+      item("Winter Blanket"),
+    ],
+    startingGoldGP: 5,
+  },
+  noble: {
+    backgroundId: "noble",
+    items: [
+      item("Signet Ring"),
+      item("Fine Clothes"),
+      item("Scroll of Pedigree"),
+    ],
+    startingGoldGP: 25,
+  },
+  outlander: {
+    backgroundId: "outlander",
+    items: [
+      item("Staff"),
+      item("Traveler's Clothes"),
+      item("Hunting Trap"),
+      item("Trophy"),
+    ],
+    startingGoldGP: 10,
+  },
+  sage: {
+    backgroundId: "sage",
+    items: [
+      item("Ink"),
+      item("Parchment", 5),
+      item("Book"),
+      item("Robes"),
+    ],
+    startingGoldGP: 10,
+  },
+  sailor: {
+    backgroundId: "sailor",
+    items: [
+      item("Belaying Pin"),
+      item("Rope (50 ft)"),
+      item("Common Clothes"),
+    ],
+    startingGoldGP: 10,
+  },
+  soldier: {
+    backgroundId: "soldier",
+    items: [
+      item("Insignia of Rank"),
+      item("Trophy"),
+      item("Dice Set"),
+      item("Common Clothes"),
+    ],
+    startingGoldGP: 10,
+  },
+  urchin: {
+    backgroundId: "urchin",
+    items: [
+      item("Small Knife"),
+      item("Map of Home City"),
+      item("Pet Mouse"),
+      item("Common Clothes"),
+    ],
+    startingGoldGP: 10,
   },
 };
 
@@ -182,16 +388,17 @@ const EQUIPMENT_STUBS: Readonly<Record<string, EquipmentRule>> = {
 // ---------------------------------------------------------------------------
 
 /**
- * Returns the equipment rules registry stub.
- *
- * Full implementation deferred to CCR-007.
+ * Returns the equipment rules registry.
  *
  * @pure
  */
 export function getEquipmentRegistry(): EquipmentRegistry {
   return {
     getEquipmentRules(classId: string): EquipmentRule | null {
-      return EQUIPMENT_STUBS[classId.trim().toLowerCase()] ?? null;
+      return CLASS_EQUIPMENT[classId.trim().toLowerCase()] ?? null;
+    },
+    getBackgroundEquipmentRules(backgroundId: string): BackgroundEquipmentRule | null {
+      return BACKGROUND_EQUIPMENT[backgroundId.trim().toLowerCase()] ?? null;
     },
   };
 }
