@@ -64,15 +64,46 @@ export const BackgroundStep = ({ character, setCharacter }: BackgroundStepProps)
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-sm text-muted-foreground">Granted Skills:</p>
-                <div className="flex flex-wrap gap-2">
-                  {background.skills.map((skill) => (
-                    <Badge key={skill} variant="secondary" className="text-xs">
-                      {skill}
-                    </Badge>
-                  ))}
+              <CardContent className="space-y-3">
+                {background.description && (
+                  <p className="text-sm text-muted-foreground italic">
+                    {background.description}
+                  </p>
+                )}
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Granted Skills:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {background.skills.map((skill) => (
+                      <Badge key={skill} variant="secondary" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
+                {background.tools && background.tools.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Tool Proficiencies:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {background.tools.map((tool) => (
+                        <Badge key={tool} variant="outline" className="text-xs">
+                          {tool}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {background.languages && background.languages.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Languages:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {background.languages.map((lang) => (
+                        <Badge key={lang} variant="default" className="text-xs">
+                          {lang}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

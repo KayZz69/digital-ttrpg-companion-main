@@ -45,8 +45,22 @@ export interface Cantrip {
 }
 
 /**
+ * A structured item reference within an equipment package.
+ * Links to a compendium equipment ID for inventory creation.
+ *
+ * @see 2024 PHB — "Starting Equipment" (each class section)
+ */
+export interface PackageItem {
+  /** Compendium equipment ID (e.g., "greataxe", "leather-armor") */
+  readonly itemId: string;
+  /** Human-readable item name for display */
+  readonly itemName: string;
+  /** Number of this item included in the package */
+  readonly quantity: number;
+}
+
+/**
  * Equipment rule for a starting class package.
- * Full implementation deferred to CCR-007.
  *
  * @see 2024 PHB — "Starting Equipment" (each class section)
  */
@@ -60,8 +74,10 @@ export interface EquipmentRule {
   readonly packages: ReadonlyArray<{
     readonly id: string;
     readonly label: string;
-    /** Item names in this package (display only; linking deferred to CCR-007) */
+    /** Item names in this package (display strings for backward compat) */
     readonly items: ReadonlyArray<string>;
+    /** Structured item references with compendium IDs */
+    readonly packageItems: ReadonlyArray<PackageItem>;
   }>;
   /** Starting gold (in gp) if the player chooses gold-buy mode */
   readonly startingGoldGP: number;

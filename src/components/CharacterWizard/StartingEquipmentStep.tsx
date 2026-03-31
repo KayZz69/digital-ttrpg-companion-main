@@ -12,10 +12,10 @@ import {
   type CompendiumEquipmentType,
   getAllCompendiumEquipment,
   getClassByName,
-  getClassStartingEquipmentChoices,
   toInventoryItem,
 } from "@/lib/dndCompendium";
 import { getStartingGoldBudget } from "@/data";
+import { getEquipmentRegistry } from "@/lib/rules/equipment";
 
 interface StartingEquipmentStepProps {
   character: Partial<DnD5eCharacter>;
@@ -47,12 +47,10 @@ export const StartingEquipmentStep = ({
   const [mode, setMode] = useState<EquipmentMode>("packages");
   const inventory = character.inventory || [];
   const classData = getClassByName(character.class || "");
-  const classEquipmentChoices = getClassStartingEquipmentChoices(character.class || "");
+  const equipmentRegistry = useMemo(() => getEquipmentRegistry(), []);
+  const equipmentRule = equipmentRegistry.getEquipmentRules(character.class || "");
+  const registryPackages = equipmentRule?.packages ?? [];
   const compendiumItems = useMemo(() => getAllCompendiumEquipment(), []);
-  const compendiumByName = useMemo(
-    () => new Map(compendiumItems.map((entry) => [entry.name.trim().toLowerCase(), entry])),
-    [compendiumItems]
-  );
   const compendiumById = useMemo(
     () => new Map(compendiumItems.map((entry) => [entry.id, entry])),
     [compendiumItems]
@@ -60,12 +58,12 @@ export const StartingEquipmentStep = ({
   const startingGoldBudget = classData ? getStartingGoldBudget(classData.id) : 100;
 
   useEffect(() => {
-    if (classEquipmentChoices.length === 0) {
+    if (registryPackages.length === 0) {
       setMode("gold-buy");
       return;
     }
     setMode("packages");
-  }, [character.class, classEquipmentChoices.length]);
+  }, [character.class, registryPackages.length]);
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -97,18 +95,18 @@ export const StartingEquipmentStep = ({
   const overBudget = mode === "gold-buy" && totalCostGp > startingGoldBudget;
 
   const applyPackage = (packageId: string) => {
-    const selectedPackage = classEquipmentChoices.find((choice) => choice.id === packageId);
+    const selectedPackage = registryPackages.find((pkg) => pkg.id === packageId);
     if (!selectedPackage) {
       return;
     }
 
-    const packageItems = selectedPackage.items
-      .map((item) => {
-        const source = compendiumByName.get(item.itemName.trim().toLowerCase());
+    const packageItems = selectedPackage.packageItems
+      .map((pkgItem) => {
+        const source = compendiumById.get(pkgItem.itemId);
         if (!source) {
           return null;
         }
-        return toInventoryItem(source, Math.max(1, item.quantity || 1));
+        return toInventoryItem(source, pkgItem.quantity);
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
 
@@ -187,7 +185,7 @@ export const StartingEquipmentStep = ({
                 Starting Equipment
               </CardTitle>
               <CardDescription>
-                {classEquipmentChoices.length > 0
+                {registryPackages.length > 0
                   ? "Choose your class starting package or switch to gold-buy mode."
                   : "No class package data available. Use gold-buy mode from the compendium."}
               </CardDescription>
@@ -204,7 +202,7 @@ export const StartingEquipmentStep = ({
                 setMode("packages");
                 setCharacter({ ...character, equipmentSelectionMode: "packages" });
               }}
-              disabled={classEquipmentChoices.length === 0}
+              disabled={registryPackages.length === 0}
             >
               Class Package
             </Button>
@@ -220,33 +218,30 @@ export const StartingEquipmentStep = ({
             </Button>
           </div>
 
-          {mode === "packages" && classEquipmentChoices.length > 0 && (
+          {mode === "packages" && registryPackages.length > 0 && (
             <RadioGroup
               value={character.startingEquipmentChoiceId}
               onValueChange={applyPackage}
               className="space-y-2"
             >
-              {classEquipmentChoices.map((choice) => (
+              {registryPackages.map((pkg) => (
                 <Label
-                  key={choice.id}
-                  htmlFor={choice.id}
+                  key={pkg.id}
+                  htmlFor={pkg.id}
                   className="flex cursor-pointer items-start gap-3 rounded-md border p-3"
                 >
-                  <RadioGroupItem id={choice.id} value={choice.id} />
+                  <RadioGroupItem id={pkg.id} value={pkg.id} />
                   <div className="space-y-1">
-                    <p className="font-medium">{choice.label}</p>
+                    <p className="font-medium">{pkg.label}</p>
                     <p className="text-xs text-muted-foreground">
-                      {choice.items
+                      {pkg.packageItems
                         .map((item) =>
-                          item.quantity && item.quantity > 1
+                          item.quantity > 1
                             ? `${item.itemName} x${item.quantity}`
                             : item.itemName
                         )
                         .join(", ")}
                     </p>
-                    {choice.notes && (
-                      <p className="text-xs text-muted-foreground">{choice.notes}</p>
-                    )}
                   </div>
                 </Label>
               ))}

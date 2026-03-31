@@ -17,6 +17,7 @@ import {
   hasRequiredRaceAbilityChoices,
   parseAbilityScoreIncrease,
 } from "@/lib/characterCreationRules";
+import { getRaceRegistry } from "@/lib/rules/races";
 
 interface RaceSelectionStepProps {
   character: Partial<DnD5eCharacter>;
@@ -25,6 +26,7 @@ interface RaceSelectionStepProps {
 
 export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStepProps) => {
   const races = getAllRaces();
+  const raceRegistry = getRaceRegistry();
   const selectedRace = races.find((race) => race.name === character.race);
   const parsedIncrease = parseAbilityScoreIncrease(selectedRace?.abilityScoreIncrease);
 
@@ -89,7 +91,7 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
                   <div>
                     <CardTitle className="text-xl">{race.name}</CardTitle>
                     <CardDescription className="mt-1">
-                      {race.size} | {race.speed} ft speed
+                      {race.size} {race.creatureType} | {race.speed} ft speed
                     </CardDescription>
                   </div>
                   {isSelected && (
@@ -100,27 +102,29 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium mb-2">Traits:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {race.traits.slice(0, 3).map((trait, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {trait.name}
-                      </Badge>
-                    ))}
-                    {race.traits.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{race.traits.length - 3} more
-                      </Badge>
-                    )}
+                {race.traits.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Traits:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {race.traits.map((trait, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-[11px] px-2 py-0.5">
+                          {trait.name}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {race.languages && race.languages.length > 0 && (
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Languages: {race.languages.join(", ")}
-                    </p>
+                    <p className="text-sm font-medium mb-1">Languages:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {race.languages.map((lang, idx) => (
+                        <Badge key={idx} variant="outline" className="text-[11px] px-2 py-0.5">
+                          {lang}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {race.abilityScoreIncrease && (
@@ -142,6 +146,25 @@ export const RaceSelectionStep = ({ character, setCharacter }: RaceSelectionStep
             <p className="text-sm text-muted-foreground">
               Selected: <span className="font-semibold text-foreground">{character.race}</span>
             </p>
+
+            {selectedRace && (() => {
+              const raceRule = raceRegistry.getRaceRules(selectedRace.id);
+              if (!raceRule || raceRule.traits.length === 0) return null;
+              return (
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold">Racial Traits</p>
+                  <div className="space-y-2">
+                    {raceRule.traits.map((trait, idx) => (
+                      <div key={idx} className="rounded-md border bg-background p-3">
+                        <p className="text-sm font-medium">{trait.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{trait.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {selectedRace && parsedIncrease.choiceBonuses.length > 0 && (
               <div className="space-y-3">
                 {parsedIncrease.choiceBonuses.map((bonus, index) => {

@@ -5,13 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  getClassExpertiseSelectionCount,
-  getClassSkillChoices,
-  SKILL_DEFINITIONS,
-} from "@/lib/dndCompendium";
+  getRegistryClassSkillRules,
+  getRegistrySkillDefinitions,
+  validateSkillSelection,
+} from "@/lib/rules/skills";
 import { getAbilityModifier, getProficiencyBonus } from "@/lib/dndRules";
 import { applyAbilityBonuses } from "@/lib/characterCreationRules";
-import { Info } from "lucide-react";
+import { Info, AlertCircle } from "lucide-react";
 
 interface SkillsStepProps {
   character: Partial<DnD5eCharacter>;
@@ -26,11 +26,16 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
   );
   const level = character.level || 1;
   const backgroundSkills = new Set(character.backgroundSkills || []);
-  const skillChoices = getClassSkillChoices(character.class || "");
-  const availableSkills = skillChoices.from;
+  const backgroundSkillsArray = character.backgroundSkills || [];
+
+  const skillRules = getRegistryClassSkillRules(character.class || "", level);
+  const skillDefinitions = getRegistrySkillDefinitions();
+  const skillChoiceCount = skillRules?.skillChoiceCount ?? 0;
+  const availableSkills = skillRules?.availableSkills ?? [];
+  const expertiseSlots = skillRules?.expertiseSlots ?? 0;
 
   // Count class-selected skills only; background skills are always granted and do not consume class picks.
-  const selectedClassSkillCount = SKILL_DEFINITIONS.filter((skill) => {
+  const selectedClassSkillCount = skillDefinitions.filter((skill) => {
     const profLevel = skills[skill.name] || "none";
     return (
       availableSkills.includes(skill.name) &&
@@ -38,10 +43,17 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
       profLevel !== "none"
     );
   }).length;
-  const expertiseSlots = getClassExpertiseSelectionCount(character.class || "", level);
-  const selectedExpertiseCount = SKILL_DEFINITIONS.filter(
+  const selectedExpertiseCount = skillDefinitions.filter(
     (skill) => (skills[skill.name] || "none") === "expert"
   ).length;
+
+  // Validation summary from registry
+  const validation = validateSkillSelection(
+    character.class || "",
+    skills,
+    backgroundSkillsArray,
+    level,
+  );
 
   const getSkillModifier = (
     skill: { name: string; ability: keyof DnD5eAbilityScores },
@@ -72,7 +84,7 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
     }
 
     // If trying to select and already at limit, don't allow
-    if (current === "none" && selectedClassSkillCount >= skillChoices.choose && isAvailable) {
+    if (current === "none" && selectedClassSkillCount >= skillChoiceCount && isAvailable) {
       return;
     }
 
@@ -119,12 +131,12 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
         <CardHeader>
           <CardTitle>Skill Proficiencies</CardTitle>
           <CardDescription>
-            Select {skillChoices.choose} skill{skillChoices.choose !== 1 ? 's' : ''} from your class list
+            Select {skillChoiceCount} skill{skillChoiceCount !== 1 ? 's' : ''} from your class list
           </CardDescription>
           <div className="flex items-center gap-4 mt-2">
             <Badge variant="outline">Proficiency Bonus: {formatModifier(getProficiencyBonus(level))}</Badge>
-            <Badge variant={selectedClassSkillCount >= skillChoices.choose ? "default" : "secondary"}>
-              {selectedClassSkillCount} / {skillChoices.choose} Class Picks
+            <Badge variant={selectedClassSkillCount >= skillChoiceCount ? "default" : "secondary"}>
+              {selectedClassSkillCount} / {skillChoiceCount} Class Picks
             </Badge>
             <Badge variant={selectedExpertiseCount >= expertiseSlots ? "default" : "secondary"}>
               {selectedExpertiseCount} / {expertiseSlots} Expertise
@@ -132,7 +144,7 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
           </div>
         </CardHeader>
         <CardContent>
-          {skillChoices.choose === 0 ? (
+          {skillChoiceCount === 0 ? (
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
@@ -141,13 +153,13 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
             </Alert>
           ) : (
             <div className="space-y-2">
-              {SKILL_DEFINITIONS.map((skill) => {
+              {skillDefinitions.map((skill) => {
                 const profLevel = skills[skill.name] || "none";
                 const modifier = getSkillModifier(skill, profLevel);
                 const isAvailable = availableSkills.includes(skill.name);
                 const isBackgroundSkill = backgroundSkills.has(skill.name);
                 const classPickLimitReached =
-                  profLevel === "none" && selectedClassSkillCount >= skillChoices.choose;
+                  profLevel === "none" && selectedClassSkillCount >= skillChoiceCount;
                 const isDisabled = !isAvailable || isBackgroundSkill || classPickLimitReached;
                 const expertiseDisabled =
                   profLevel === "none" ||
@@ -185,16 +197,23 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
                         htmlFor={`${skill.name}-prof`}
                         className={`flex-1 font-medium ${isAvailable ? "cursor-pointer" : "cursor-not-allowed"}`}
                       >
-                        {skill.name}
-                        <span className="text-xs text-muted-foreground ml-2">
-                          ({skill.ability.substring(0, 3).toUpperCase()})
+                        <span className="flex flex-col">
+                          <span>
+                            {skill.name}
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({skill.ability.substring(0, 3).toUpperCase()})
+                            </span>
+                            {!isAvailable && (
+                              <span className="text-xs text-muted-foreground ml-2">(Not available for your class)</span>
+                            )}
+                            {isBackgroundSkill && (
+                              <span className="text-xs text-primary ml-2">(Background)</span>
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-normal">
+                            {skill.description}
+                          </span>
                         </span>
-                        {!isAvailable && (
-                          <span className="text-xs text-muted-foreground ml-2">(Not available for your class)</span>
-                        )}
-                        {isBackgroundSkill && (
-                          <span className="text-xs text-primary ml-2">(Background)</span>
-                        )}
                       </Label>
                     </div>
                     <div className="text-right min-w-[3rem]">
@@ -209,6 +228,19 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
           )}
         </CardContent>
       </Card>
+
+      {!validation.isValid && validation.errors.length > 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <ul className="list-disc list-inside space-y-1">
+              {validation.errors.map((error, i) => (
+                <li key={i}>{error}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card className="bg-muted/50 border-dashed">
         <CardContent className="pt-6">

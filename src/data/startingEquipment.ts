@@ -148,18 +148,18 @@ const CLASS_STARTING_EQUIPMENT: Record<string, StartingEquipmentChoice[]> = {
 };
 
 const STARTING_GOLD_BUDGETS: Record<string, number> = {
-  barbarian: 20,
+  barbarian: 75,
   bard: 125,
   cleric: 125,
   druid: 50,
-  fighter: 150,
-  monk: 15,
-  paladin: 150,
-  ranger: 100,
+  fighter: 175,
+  monk: 12,
+  paladin: 175,
+  ranger: 125,
   rogue: 100,
-  sorcerer: 100,
+  sorcerer: 75,
   warlock: 100,
-  wizard: 100,
+  wizard: 75,
 };
 
 export function getStartingEquipmentChoices(classId: string): StartingEquipmentChoice[] {
