@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Package, Plus, Minus, Trash2 } from "lucide-react";
+import { Package, Plus, Minus, Trash2, AlertTriangle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
@@ -38,13 +38,61 @@ const toGoldValue = (quantity: number, unit: "cp" | "sp" | "gp" | "pp"): number 
   return quantity;
 };
 
+/**
+ * Validates whether the equipment step is complete and valid.
+ *
+ * In package mode: a package must be selected and inventory must be non-empty.
+ * In gold-buy mode: inventory must be non-empty and total cost must not exceed budget.
+ */
+export function validateEquipmentStep(character: Partial<DnD5eCharacter>): {
+  valid: boolean;
+  reason?: string;
+} {
+  const inventory = character.inventory || [];
+  const mode = character.equipmentSelectionMode || "packages";
+
+  if (inventory.length === 0) {
+    return { valid: false, reason: "No equipment selected." };
+  }
+
+  if (mode === "packages" && !character.startingEquipmentChoiceId) {
+    return { valid: false, reason: "No equipment package selected." };
+  }
+
+  if (mode === "gold-buy") {
+    const classData = getClassByName(character.class || "");
+    const budget = classData ? getStartingGoldBudget(classData.id) : 100;
+    const compendiumItems = getAllCompendiumEquipment();
+    const compendiumById = new Map(compendiumItems.map((entry) => [entry.id, entry]));
+
+    const totalCost = inventory.reduce((sum, item) => {
+      if (!item.sourceItemId) {
+        return sum;
+      }
+      const source = compendiumById.get(item.sourceItemId);
+      if (!source || !source.source.cost) {
+        return sum;
+      }
+      return sum + toGoldValue(source.source.cost.quantity, source.source.cost.unit) * item.quantity;
+    }, 0);
+
+    if (totalCost > budget) {
+      return { valid: false, reason: `Equipment cost (${totalCost.toFixed(2)} gp) exceeds budget (${budget} gp).` };
+    }
+  }
+
+  return { valid: true };
+}
+
 export const StartingEquipmentStep = ({
   character,
   setCharacter,
 }: StartingEquipmentStepProps) => {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
-  const [mode, setMode] = useState<EquipmentMode>("packages");
+  const [mode, setMode] = useState<EquipmentMode>(
+    character.equipmentSelectionMode || "packages"
+  );
   const inventory = character.inventory || [];
   const classData = getClassByName(character.class || "");
   const classEquipmentChoices = getClassStartingEquipmentChoices(character.class || "");
@@ -62,10 +110,16 @@ export const StartingEquipmentStep = ({
   useEffect(() => {
     if (classEquipmentChoices.length === 0) {
       setMode("gold-buy");
+      setCharacter({ ...character, equipmentSelectionMode: "gold-buy" });
       return;
     }
-    setMode("packages");
-  }, [character.class, classEquipmentChoices.length]);
+    if (!character.equipmentSelectionMode) {
+      setMode("packages");
+      setCharacter({ ...character, equipmentSelectionMode: "packages" });
+    }
+    // Only run when class changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [character.class]);
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -95,6 +149,7 @@ export const StartingEquipmentStep = ({
     return sum + toGoldValue(source.source.cost.quantity, source.source.cost.unit) * item.quantity;
   }, 0);
   const overBudget = mode === "gold-buy" && totalCostGp > startingGoldBudget;
+  const remainingGold = startingGoldBudget - totalCostGp;
 
   const applyPackage = (packageId: string) => {
     const selectedPackage = classEquipmentChoices.find((choice) => choice.id === packageId);
@@ -136,7 +191,12 @@ export const StartingEquipmentStep = ({
         ...updated[existingIndex],
         quantity: updated[existingIndex].quantity + 1,
       };
-      setCharacter({ ...character, startingEquipmentChoiceId: undefined, inventory: updated });
+      setCharacter({
+        ...character,
+        equipmentSelectionMode: "gold-buy",
+        startingEquipmentChoiceId: undefined,
+        inventory: updated,
+      });
       return;
     }
 
@@ -176,6 +236,19 @@ export const StartingEquipmentStep = ({
     });
   };
 
+  const switchMode = (newMode: EquipmentMode) => {
+    setMode(newMode);
+    setCharacter({
+      ...character,
+      equipmentSelectionMode: newMode,
+      // Clear inventory when switching modes to avoid stale state
+      inventory: [],
+      startingEquipmentChoiceId: undefined,
+    });
+    setQuery("");
+    setFilter("all");
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-2">
@@ -196,25 +269,21 @@ export const StartingEquipmentStep = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="group" aria-label="Equipment selection mode">
             <Button
               size="sm"
               variant={mode === "packages" ? "default" : "outline"}
-              onClick={() => {
-                setMode("packages");
-                setCharacter({ ...character, equipmentSelectionMode: "packages" });
-              }}
+              onClick={() => switchMode("packages")}
               disabled={classEquipmentChoices.length === 0}
+              aria-pressed={mode === "packages"}
             >
               Class Package
             </Button>
             <Button
               size="sm"
               variant={mode === "gold-buy" ? "default" : "outline"}
-              onClick={() => {
-                setMode("gold-buy");
-                setCharacter({ ...character, equipmentSelectionMode: "gold-buy" });
-              }}
+              onClick={() => switchMode("gold-buy")}
+              aria-pressed={mode === "gold-buy"}
             >
               Gold-Buy Mode
             </Button>
@@ -230,7 +299,11 @@ export const StartingEquipmentStep = ({
                 <Label
                   key={choice.id}
                   htmlFor={choice.id}
-                  className="flex cursor-pointer items-start gap-3 rounded-md border p-3"
+                  className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors ${
+                    character.startingEquipmentChoiceId === choice.id
+                      ? "border-primary bg-primary/5"
+                      : ""
+                  }`}
                 >
                   <RadioGroupItem id={choice.id} value={choice.id} />
                   <div className="space-y-1">
@@ -256,11 +329,35 @@ export const StartingEquipmentStep = ({
           {mode === "gold-buy" && (
             <>
               <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                Budget: <span className="font-semibold">{startingGoldBudget} gp</span> | Current:{" "}
-                <span className={`font-semibold ${overBudget ? "text-destructive" : ""}`}>
-                  {totalCostGp.toFixed(2)} gp
-                </span>
+                <div className="flex flex-wrap items-center gap-4">
+                  <span>
+                    Budget: <span className="font-semibold">{startingGoldBudget} gp</span>
+                  </span>
+                  <span>
+                    Spent:{" "}
+                    <span className={`font-semibold ${overBudget ? "text-destructive" : ""}`}>
+                      {totalCostGp.toFixed(2)} gp
+                    </span>
+                  </span>
+                  <span>
+                    Remaining:{" "}
+                    <span className={`font-semibold ${overBudget ? "text-destructive" : "text-green-600"}`}>
+                      {remainingGold.toFixed(2)} gp
+                    </span>
+                  </span>
+                </div>
               </div>
+              {overBudget && (
+                <div
+                  role="alert"
+                  className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                >
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>
+                    Your selected equipment exceeds the class starting gold budget. Remove items to continue.
+                  </span>
+                </div>
+              )}
               <Input
                 placeholder="Search equipment by name or category..."
                 value={query}
@@ -320,13 +417,12 @@ export const StartingEquipmentStep = ({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {overBudget && (
-            <p className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Your selected equipment exceeds the class starting gold budget.
-            </p>
-          )}
           {inventory.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No starting equipment selected.</p>
+            <p className="text-sm text-muted-foreground">
+              {mode === "packages"
+                ? "Select a class package above to populate your inventory."
+                : "Add items from the equipment list above."}
+            </p>
           ) : (
             <div className="space-y-2">
               {inventory.map((item) => (
@@ -342,13 +438,28 @@ export const StartingEquipmentStep = ({
                   </div>
                   {mode === "gold-buy" && (
                     <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => updateQuantity(item.id, -1)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => updateQuantity(item.id, -1)}
+                        aria-label={`Decrease quantity of ${item.name}`}
+                      >
                         <Minus className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => updateQuantity(item.id, 1)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => updateQuantity(item.id, 1)}
+                        aria-label={`Increase quantity of ${item.name}`}
+                      >
                         <Plus className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => removeInventoryItem(item.id)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removeInventoryItem(item.id)}
+                        aria-label={`Remove ${item.name}`}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

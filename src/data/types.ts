@@ -68,6 +68,8 @@ export interface Background {
   skills: string[];
   tools?: string[];
   languages?: string[];
+  equipment?: string[];
+  feat?: string;
   description?: string;
 }
 

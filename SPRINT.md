@@ -1,13 +1,16 @@
 # Digital TTRPG Companion — Active Sprint
 
 > Source: extracted from [ROADMAP.md](./ROADMAP.md) and [character-creation-implementation-backlog.old.md](./character-creation-implementation-backlog.old.md)
-> Last updated: 2026-03-31
+> Last updated: 2026-04-01
 
-## Current Sprint: CCR-006 through CCR-007 — Spell Enforcement & Class Reconciliation
+## Current Sprint: CCR-008 through CCR-012 — Equipment Rules, Background/Race/Skills Integration
 
 ### Tasks
-- [x] CCR-006 — Spell selection full rule enforcement: cantrip/known/prepared counts enforced at step level, spell level validation, under-selection blocking
-- [x] CCR-007 — Class change reconciliation: registry-driven spell trimming, equipment reset, descriptive change summaries
+- [x] CCR-008 — Equipment rules data: multi-package class equipment, background equipment, gold-buy budgets
+- [x] CCR-009 — Starting equipment step rewrite: package selection with validation, gold-buy budget enforcement
+- [x] CCR-010 — Background step and data integration: tools, languages, equipment, feat grants, skill overlap warnings
+- [x] CCR-011 — Race and origin application: review step shows final post-modifier ability scores, race features/languages
+- [x] CCR-012 — Skills step rule correction: expertise gating by class/level, over-selection blocking, background skill exclusion
 
 ### Completed
 - [x] CCR-001 — Rule baseline decision (2024 PHB documented)
@@ -17,18 +20,23 @@
 - [x] CCR-005 — Legacy character migration layer
 - [x] CCR-006 — Spell selection full rule enforcement
 - [x] CCR-007 — Class change reconciliation
+- [x] CCR-008 — Equipment rules data
+- [x] CCR-009 — Starting equipment step rewrite
+- [x] CCR-010 — Background step and data integration
+- [x] CCR-011 — Race and origin application
+- [x] CCR-012 — Skills step rule correction
 
 ## Next Sprint Preview
-- CCR-008–CCR-012: Equipment rules, starting equipment rewrite, background/race/skills steps
+- CCR-013–CCR-014: Wizard validation hardening, review step rule summary
 
 ## Nightly Handoff (Bulhkin)
 <!-- Updated by agents at end of each session -->
 ### Tonight
-- Sprint CCR-006/007 is complete. Next sprint: CCR-008–012 (equipment rules, starting equipment rewrite, background/race/skills integration).
+- Sprint CCR-008–012 is complete. Next sprint: CCR-013–014 (wizard validation hardening, review step rule summary).
 
-### Maintenance (2026-03-31)
-- [x] Run all tests and report failures — 376 tests pass, 0 failures
-- [x] Code review: flag smells, duplication, anti-patterns — no critical issues; pre-existing warnings only (shadcn fast-refresh, useEffect deps in DnD5eCharacterForm/CharacterList/SessionJournal)
-- [x] Check for security issues (hardcoded secrets, unsafe inputs) — clean; one acceptable dangerouslySetInnerHTML in shadcn chart.tsx
-- [x] Check for unused imports, dead code, stale TODOs — migrateStoredData stub is scaffolding; no actionable dead code
+### Maintenance (2026-04-01)
+- [x] Run all tests and report failures — 912 tests pass (includes new CCR-008-012 coverage), 0 failures
+- [x] Code review: flag smells, duplication, anti-patterns — no critical issues; pre-existing warnings only (shadcn fast-refresh, useEffect deps)
+- [x] Check for security issues (hardcoded secrets, unsafe inputs) — clean
+- [x] Check for unused imports, dead code, stale TODOs — clean
 - [x] Check localStorage key compatibility for soloquest_* keys — all references go through STORAGE_KEYS constant, no renames

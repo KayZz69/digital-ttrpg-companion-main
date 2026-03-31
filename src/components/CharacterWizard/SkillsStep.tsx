@@ -11,7 +11,7 @@ import {
 } from "@/lib/dndCompendium";
 import { getAbilityModifier, getProficiencyBonus } from "@/lib/dndRules";
 import { applyAbilityBonuses } from "@/lib/characterCreationRules";
-import { Info } from "lucide-react";
+import { Info, AlertTriangle } from "lucide-react";
 
 interface SkillsStepProps {
   character: Partial<DnD5eCharacter>;
@@ -39,9 +39,11 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
     );
   }).length;
   const expertiseSlots = getClassExpertiseSelectionCount(character.class || "", level);
+  const hasExpertise = expertiseSlots > 0;
   const selectedExpertiseCount = SKILL_DEFINITIONS.filter(
     (skill) => (skills[skill.name] || "none") === "expert"
   ).length;
+  const isOverClassLimit = selectedClassSkillCount > skillChoices.choose;
 
   const getSkillModifier = (
     skill: { name: string; ability: keyof DnD5eAbilityScores },
@@ -49,7 +51,7 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
   ): number => {
     const abilityMod = getAbilityModifier(abilityScores[skill.ability]);
     const profBonus = getProficiencyBonus(level);
-    
+
     if (proficiencyLevel === "expert") {
       return abilityMod + (profBonus * 2);
     } else if (proficiencyLevel === "proficient") {
@@ -64,7 +66,6 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
 
   const toggleFirstCheckbox = (skillName: string) => {
     const current = skills[skillName] || "none";
-    const isAvailable = availableSkills.includes(skillName);
     const isBackgroundSkill = backgroundSkills.has(skillName);
 
     if (isBackgroundSkill) {
@@ -72,11 +73,17 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
     }
 
     // If trying to select and already at limit, don't allow
-    if (current === "none" && selectedClassSkillCount >= skillChoices.choose && isAvailable) {
+    if (current === "none" && selectedClassSkillCount >= skillChoices.choose) {
       return;
     }
 
-    const next: SkillProficiencyLevel = current === "none" ? "proficient" : "none";
+    let next: SkillProficiencyLevel;
+    if (current === "none") {
+      next = "proficient";
+    } else {
+      // When un-proficienting, also remove expertise
+      next = "none";
+    }
 
     setCharacter({
       ...character,
@@ -90,11 +97,11 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
   const toggleSecondCheckbox = (skillName: string) => {
     const current = skills[skillName] || "none";
     const isAvailable = availableSkills.includes(skillName);
-    if (!isAvailable || current === "none" || expertiseSlots === 0) {
+    if (!isAvailable || current === "none" || !hasExpertise) {
       return;
     }
 
-    let next: SkillProficiencyLevel = "none";
+    let next: SkillProficiencyLevel;
 
     if (current === "expert") {
       next = "proficient";
@@ -119,19 +126,29 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
         <CardHeader>
           <CardTitle>Skill Proficiencies</CardTitle>
           <CardDescription>
-            Select {skillChoices.choose} skill{skillChoices.choose !== 1 ? 's' : ''} from your class list
+            Select {skillChoices.choose} skill{skillChoices.choose !== 1 ? "s" : ""} from your class list
           </CardDescription>
-          <div className="flex items-center gap-4 mt-2">
+          <div className="flex items-center gap-4 mt-2 flex-wrap">
             <Badge variant="outline">Proficiency Bonus: {formatModifier(getProficiencyBonus(level))}</Badge>
             <Badge variant={selectedClassSkillCount >= skillChoices.choose ? "default" : "secondary"}>
               {selectedClassSkillCount} / {skillChoices.choose} Class Picks
             </Badge>
-            <Badge variant={selectedExpertiseCount >= expertiseSlots ? "default" : "secondary"}>
-              {selectedExpertiseCount} / {expertiseSlots} Expertise
-            </Badge>
+            {hasExpertise && (
+              <Badge variant={selectedExpertiseCount >= expertiseSlots ? "default" : "secondary"}>
+                {selectedExpertiseCount} / {expertiseSlots} Expertise
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
+          {isOverClassLimit && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Too many skills selected. Remove {selectedClassSkillCount - skillChoices.choose} class skill pick{selectedClassSkillCount - skillChoices.choose !== 1 ? "s" : ""} before continuing.
+              </AlertDescription>
+            </Alert>
+          )}
           {skillChoices.choose === 0 ? (
             <Alert>
               <Info className="h-4 w-4" />
@@ -152,15 +169,14 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
                 const expertiseDisabled =
                   profLevel === "none" ||
                   !isAvailable ||
-                  expertiseSlots === 0 ||
                   (profLevel !== "expert" && selectedExpertiseCount >= expertiseSlots);
-                 
+
                 return (
                   <div
                     key={skill.name}
                     className={`flex items-center justify-between p-3 rounded-md transition-colors border ${
-                      isAvailable 
-                        ? "hover:bg-muted/50" 
+                      isAvailable
+                        ? "hover:bg-muted/50"
                         : "opacity-50 bg-muted/20"
                     }`}
                   >
@@ -173,13 +189,15 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
                           aria-label={`${skill.name} proficiency`}
                           disabled={isDisabled}
                         />
-                        <Checkbox
-                          id={`${skill.name}-expert`}
-                          checked={profLevel === "expert"}
-                          onCheckedChange={() => toggleSecondCheckbox(skill.name)}
-                          disabled={expertiseDisabled}
-                          aria-label={`${skill.name} expertise`}
-                        />
+                        {hasExpertise && (
+                          <Checkbox
+                            id={`${skill.name}-expert`}
+                            checked={profLevel === "expert"}
+                            onCheckedChange={() => toggleSecondCheckbox(skill.name)}
+                            disabled={expertiseDisabled}
+                            aria-label={`${skill.name} expertise`}
+                          />
+                        )}
                       </div>
                       <Label
                         htmlFor={`${skill.name}-prof`}
@@ -223,9 +241,16 @@ export const SkillsStep = ({ character, setCharacter }: SkillsStepProps) => {
             <p className="text-muted-foreground">
               - First checkbox = Proficient (adds proficiency bonus)
             </p>
-            <p className="text-muted-foreground">
-              - Second checkbox = Expertise (doubles proficiency bonus, if your class grants it)
-            </p>
+            {hasExpertise && (
+              <p className="text-muted-foreground">
+                - Second checkbox = Expertise (doubles proficiency bonus)
+              </p>
+            )}
+            {!hasExpertise && (
+              <p className="text-muted-foreground">
+                - Expertise is not available for your class at this level
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
