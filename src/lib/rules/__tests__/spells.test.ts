@@ -20,6 +20,7 @@ import {
   getSpellcastingType,
   toCharacterSpellSlots,
   validateRegistrySpellSelection,
+  validateSpellStepComplete,
 } from "../spells";
 
 // ---------------------------------------------------------------------------
@@ -629,5 +630,188 @@ describe("validateRegistrySpellSelection", () => {
     const result = validateRegistrySpellSelection("wizard", 5, 16, spells, 1);
     expect(result.canAdd).toBe(false);
     expect(result.reason).toContain("limit reached");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CCR-006: validateSpellStepComplete
+// ---------------------------------------------------------------------------
+
+describe("validateSpellStepComplete", () => {
+  // --- Non-caster ---
+
+  it("non-caster (fighter): always complete", () => {
+    const result = validateSpellStepComplete("fighter", 5, 10, []);
+    expect(result.isComplete).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  // --- Known caster: Bard level 1 ---
+  // Bard level 1: 2 cantrips, 4 known spells
+
+  it("bard level 1: incomplete with 0 spells", () => {
+    const result = validateSpellStepComplete("bard", 1, 16, []);
+    expect(result.isComplete).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("bard level 1: incomplete with partial cantrips and partial known", () => {
+    // 1/2 cantrips + 3/4 known
+    const spells = [
+      { level: 0 },
+      { level: 1 }, { level: 1 }, { level: 1 },
+    ];
+    const result = validateSpellStepComplete("bard", 1, 16, spells);
+    expect(result.isComplete).toBe(false);
+    expect(result.errors.some((e) => e.includes("cantrips"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("known spells"))).toBe(true);
+  });
+
+  it("bard level 1: complete with exact counts (2 cantrips + 4 known)", () => {
+    const spells = [
+      { level: 0 }, { level: 0 },
+      { level: 1 }, { level: 1 }, { level: 1 }, { level: 1 },
+    ];
+    const result = validateSpellStepComplete("bard", 1, 16, spells);
+    expect(result.isComplete).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  // --- Prepared caster: Cleric level 1 ---
+  // Cleric level 1: 3 cantrips, prepared = level + mod (min 1)
+
+  it("cleric level 1: incomplete with 0 spells", () => {
+    const result = validateSpellStepComplete("cleric", 1, 16, []);
+    expect(result.isComplete).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("cleric level 1: complete with exact cantrips + at least 1 leveled", () => {
+    // 3 cantrips + 1 leveled spell (mod +3 allows up to 4, but only 1 needed)
+    const spells = [
+      { level: 0 }, { level: 0 }, { level: 0 },
+      { level: 1 },
+    ];
+    const result = validateSpellStepComplete("cleric", 1, 16, spells);
+    expect(result.isComplete).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  // --- Prepared caster: Wizard level 1 ---
+  // Wizard level 1: 3 cantrips, prepared = level + mod (min 1)
+
+  it("wizard level 1: incomplete with 0 spells", () => {
+    const result = validateSpellStepComplete("wizard", 1, 16, []);
+    expect(result.isComplete).toBe(false);
+  });
+
+  it("wizard level 1: complete with exact cantrips + at least 1 leveled", () => {
+    const spells = [
+      { level: 0 }, { level: 0 }, { level: 0 },
+      { level: 1 },
+    ];
+    const result = validateSpellStepComplete("wizard", 1, 16, spells);
+    expect(result.isComplete).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  // --- Half-caster at level 1: Paladin ---
+  // Paladin level 1: 0 cantrips, 0 slots → complete with 0 spells
+
+  it("paladin level 1: complete with 0 spells (no slots, no cantrips)", () => {
+    const result = validateSpellStepComplete("paladin", 1, 16, []);
+    expect(result.isComplete).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  // --- Half-caster at level 2: Ranger ---
+  // Ranger level 2: 0 cantrips, has slots → needs at least 1 leveled spell
+
+  it("ranger level 2: incomplete with 0 spells (has slots)", () => {
+    const result = validateSpellStepComplete("ranger", 2, 14, []);
+    expect(result.isComplete).toBe(false);
+    expect(result.errors.some((e) => e.includes("at least 1"))).toBe(true);
+  });
+
+  it("ranger level 2: complete with 1 leveled spell", () => {
+    const spells = [{ level: 1 }];
+    const result = validateSpellStepComplete("ranger", 2, 14, spells);
+    expect(result.isComplete).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  // --- Warlock (pact → treated as known) ---
+  // Warlock level 1: 2 cantrips, 2 known spells
+
+  it("warlock level 1: incomplete with 0 spells", () => {
+    const result = validateSpellStepComplete("warlock", 1, 16, []);
+    expect(result.isComplete).toBe(false);
+  });
+
+  it("warlock level 1: complete with exact counts (2 cantrips + 2 known)", () => {
+    const spells = [
+      { level: 0 }, { level: 0 },
+      { level: 1 }, { level: 1 },
+    ];
+    const result = validateSpellStepComplete("warlock", 1, 16, spells);
+    expect(result.isComplete).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  // --- Over-limit ---
+
+  it("over-limit: returns error for too many cantrips", () => {
+    // wizard level 1: 3 cantrips max, give 4
+    const spells = [
+      { level: 0 }, { level: 0 }, { level: 0 }, { level: 0 },
+      { level: 1 },
+    ];
+    const result = validateSpellStepComplete("wizard", 1, 16, spells);
+    expect(result.isComplete).toBe(false);
+    expect(result.errors.some((e) => e.includes("Too many cantrips"))).toBe(true);
+  });
+
+  it("over-limit: returns error for too many leveled spells", () => {
+    // wizard level 1, mod +3 = 4 max leveled. Give 5 leveled + 3 cantrips.
+    const spells = [
+      { level: 0 }, { level: 0 }, { level: 0 },
+      { level: 1 }, { level: 1 }, { level: 1 }, { level: 1 }, { level: 1 },
+    ];
+    const result = validateSpellStepComplete("wizard", 1, 16, spells);
+    expect(result.isComplete).toBe(false);
+    expect(result.errors.some((e) => e.includes("Too many leveled spells"))).toBe(true);
+  });
+
+  // --- Invalid spell level ---
+
+  it("spell level exceeds highest slot level: returns error", () => {
+    // wizard level 1: highest slot = 1, add a level 2 spell
+    const spells = [
+      { level: 0 }, { level: 0 }, { level: 0 },
+      { level: 2 },
+    ];
+    const result = validateSpellStepComplete("wizard", 1, 16, spells);
+    expect(result.isComplete).toBe(false);
+    expect(result.errors.some((e) => e.includes("exceeds highest available slot level"))).toBe(true);
+  });
+
+  // --- Edge case: negative modifier for prepared caster ---
+
+  it("prepared caster with negative modifier: min 1 leveled spell required", () => {
+    // cleric level 1, ability score 6 → mod = -2 → max prepared = max(1, 1 + -2) = 1
+    const result = validateSpellStepComplete("cleric", 1, 6, []);
+    expect(result.isComplete).toBe(false);
+    expect(result.errors.some((e) => e.includes("at least 1"))).toBe(true);
+  });
+
+  it("prepared caster with negative modifier: complete with exact cantrips + 1 leveled", () => {
+    // cleric level 1: 3 cantrips, min 1 leveled
+    const spells = [
+      { level: 0 }, { level: 0 }, { level: 0 },
+      { level: 1 },
+    ];
+    const result = validateSpellStepComplete("cleric", 1, 6, spells);
+    expect(result.isComplete).toBe(true);
+    expect(result.errors).toHaveLength(0);
   });
 });

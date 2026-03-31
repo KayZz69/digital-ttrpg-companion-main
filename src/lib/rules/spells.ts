@@ -525,6 +525,100 @@ export function getRegistrySpellSelectionState(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Spell step completion validation (CCR-006)
+// ---------------------------------------------------------------------------
+
+export interface SpellStepValidation {
+  isComplete: boolean;
+  errors: string[];
+}
+
+/**
+ * Validates whether the spell selection step is complete and valid.
+ * Used by the wizard to gate the Next button on the spell step.
+ *
+ * Rules:
+ * - Non-casters: always complete (no spells needed)
+ * - Cantrips: must select exactly maxCantrips (for classes with cantrips)
+ * - Known casters: must select exactly maxLeveledSpells
+ * - Prepared casters: must select at least 1 leveled spell (if they have slots at this level)
+ * - No spell may exceed the highest available slot level
+ * - No over-limit selections allowed
+ *
+ * @pure
+ */
+export function validateSpellStepComplete(
+  classId: string,
+  characterLevel: number,
+  abilityScore: number,
+  spells: Array<{ level: number }>,
+): SpellStepValidation {
+  const state = getRegistrySpellSelectionState(classId, characterLevel, abilityScore, spells);
+
+  // Non-casters: always complete
+  if (state.mode === "none") {
+    return { isComplete: true, errors: [] };
+  }
+
+  const errors: string[] = [];
+
+  // Over-limit check
+  if (state.isOverLimit) {
+    if (state.maxCantrips !== null && state.currentCantrips > state.maxCantrips) {
+      errors.push(
+        `Too many cantrips selected (${state.currentCantrips}/${state.maxCantrips}).`,
+      );
+    }
+    if (state.maxLeveledSpells !== null && state.currentLeveledSpells > state.maxLeveledSpells) {
+      errors.push(
+        `Too many leveled spells selected (${state.currentLeveledSpells}/${state.maxLeveledSpells}).`,
+      );
+    }
+  }
+
+  // Spell level validation
+  const highestSlot = getHighestAvailableSlotLevel(classId, characterLevel);
+  const leveledSpells = spells.filter((s) => s.level > 0);
+  for (const spell of leveledSpells) {
+    if (spell.level > highestSlot) {
+      errors.push(
+        `Selected spell of level ${spell.level} exceeds highest available slot level (${highestSlot}).`,
+      );
+      break; // one error is enough
+    }
+  }
+
+  // Cantrip count check (must be exactly maxCantrips for classes with cantrips)
+  if (state.maxCantrips !== null && state.maxCantrips > 0) {
+    if (state.currentCantrips !== state.maxCantrips) {
+      errors.push(
+        `Must select exactly ${state.maxCantrips} cantrips (currently ${state.currentCantrips}).`,
+      );
+    }
+  }
+
+  // Leveled spell count check
+  const type = getSpellcastingType(classId);
+  const ruleMode = type === "pact" ? "known" : type;
+
+  if (ruleMode === "known") {
+    // Known casters must select exactly maxLeveledSpells
+    if (state.maxLeveledSpells !== null && state.currentLeveledSpells !== state.maxLeveledSpells) {
+      errors.push(
+        `Must select exactly ${state.maxLeveledSpells} ${state.label.toLowerCase()} (currently ${state.currentLeveledSpells}).`,
+      );
+    }
+  } else if (ruleMode === "prepared") {
+    // Prepared casters must select at least 1 leveled spell if they have slots
+    if (highestSlot > 0 && state.currentLeveledSpells < 1) {
+      errors.push("Must select at least 1 leveled spell.");
+    }
+  }
+
+  return { isComplete: errors.length === 0, errors };
+}
+
 /**
  * Validates whether a candidate spell can be added, backed by the registry.
  *

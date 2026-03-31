@@ -12,17 +12,17 @@ import {
   getClassExpertiseSelectionCount,
   getClassSavingThrowProficiencies,
   getClassSkillChoices,
-  getClassSpells,
   getClassSpellcastingAbility,
   getRaceByName,
   isSpellcastingClass,
 } from "@/lib/dndCompendium";
 import { getLevelOneHitPoints } from "@/lib/dndRules";
 import {
-  getRegistrySpellSelectionState,
   getSpellcastingType,
   toCharacterSpellSlots,
+  validateSpellStepComplete,
 } from "@/lib/rules/spells";
+import { reconcileClassChange } from "@/lib/rules/classChange";
 import {
   applyAbilityBonuses,
   hasRequiredRaceAbilityChoices,
@@ -136,7 +136,21 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
 
     setCharacter((prev) => {
       const level = prev.level || 1;
-      const availableSpellIds = new Set(getClassSpells(nextClass).map((spell) => spell.id));
+      const effectiveScores = prev.abilityScores
+        ? applyAbilityBonuses(prev.abilityScores, prev.raceAbilityBonuses)
+        : undefined;
+      const castingAbility = getClassSpellcastingAbility(nextClass);
+      const abilityScore =
+        castingAbility && effectiveScores ? effectiveScores[castingAbility] ?? 10 : 10;
+
+      const reconciliation = reconcileClassChange(
+        previousClass,
+        nextClass,
+        level,
+        abilityScore,
+        (prev.preparedSpells || []) as Array<{ id: string; sourceSpellId?: string; name: string; level: number; [key: string]: unknown }>,
+      );
+
       const backgroundSkills = new Set(prev.backgroundSkills || []);
       const updatedSkills = Object.fromEntries(
         Object.entries(prev.skills || {}).map(([skillName, proficiency]) => [
@@ -144,37 +158,54 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
           backgroundSkills.has(skillName) && proficiency !== "none" ? proficiency : "none",
         ])
       );
-      const spellcastingAbility = getClassSpellcastingAbility(nextClass);
-      const reconciledPreparedSpells =
-        prev.preparedSpells?.filter(
-          (spell) => !spell.sourceSpellId || availableSpellIds.has(spell.sourceSpellId)
-        ) || [];
 
-      const castingType = getSpellcastingType(nextClass);
       return {
         ...prev,
         savingThrows: getClassSavingThrowProficiencies(nextClass),
         skills: updatedSkills,
-        ...(spellcastingAbility
+        ...(reconciliation.newSpellcastingAbility
           ? {
-              spellcastingAbility,
-              spellcastingType: castingType,
+              spellcastingAbility: reconciliation.newSpellcastingAbility,
+              spellcastingType: reconciliation.newSpellcastingType,
               spellSlots: toCharacterSpellSlots(nextClass, level),
-              preparedSpells: reconciledPreparedSpells,
+              preparedSpells: reconciliation.spells.kept,
             }
           : {
               spellcastingAbility: undefined,
-              spellcastingType: castingType,
+              spellcastingType: reconciliation.newSpellcastingType,
               spellSlots: undefined,
               preparedSpells: undefined,
             }),
+        ...(reconciliation.equipment.shouldClearEquipment
+          ? { inventory: [], equipmentSelectionMode: undefined }
+          : {}),
       };
     });
 
     previousClassRef.current = nextClass;
+
+    // Build a descriptive toast from the reconciliation summary
+    const effectiveScores = character.abilityScores
+      ? applyAbilityBonuses(character.abilityScores, character.raceAbilityBonuses)
+      : undefined;
+    const castingAbility = getClassSpellcastingAbility(nextClass);
+    const abilityScore =
+      castingAbility && effectiveScores ? effectiveScores[castingAbility] ?? 10 : 10;
+    const reconciliation = reconcileClassChange(
+      previousClass,
+      nextClass,
+      character.level || 1,
+      abilityScore,
+      (character.preparedSpells || []) as Array<{ id: string; sourceSpellId?: string; name: string; level: number; [key: string]: unknown }>,
+    );
+
+    const description = reconciliation.changeSummary.length > 0
+      ? reconciliation.changeSummary.join(". ") + "."
+      : "Class-specific options were adjusted to match your new class.";
+
     toast({
       title: "Class Updated",
-      description: "Class-specific spells and skills were adjusted to match your new class.",
+      description,
     });
   }, [character.class]);
 
@@ -278,13 +309,13 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         if (!spellcastingAbility) {
           return null;
         }
-        const state = getRegistrySpellSelectionState(
+        const spellValidation = validateSpellStepComplete(
           character.class,
           character.level || 1,
           effectiveAbilityScores[spellcastingAbility],
           character.preparedSpells || []
         );
-        return state.isOverLimit ? "Spell selections exceed class limits." : null;
+        return spellValidation.isComplete ? null : spellValidation.errors[0];
       }
       case "equipment": {
         if (!character.inventory || character.inventory.length === 0) {
