@@ -27,7 +27,7 @@ import {
   applyAbilityBonuses,
   hasRequiredRaceAbilityChoices,
 } from "@/lib/characterCreationRules";
-import { getStartingGoldBudget } from "@/data";
+import { getClassStartingGoldGP } from "@/lib/dndCompendium";
 import { BasicInfoStep } from "./BasicInfoStep";
 import { RaceSelectionStep } from "./RaceSelectionStep";
 import { ClassSelectionStep } from "./ClassSelectionStep";
@@ -323,7 +323,7 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
         }
         if (character.class && character.equipmentSelectionMode === "gold-buy") {
           const classData = getClassByName(character.class);
-          const budget = classData ? getStartingGoldBudget(classData.id) : 100;
+          const budget = classData ? getClassStartingGoldGP(classData.name) : 100;
           const totalCost = getCurrentEquipmentCostInGp();
           if (totalCost > budget) {
             return "Gold-buy equipment exceeds starting budget.";

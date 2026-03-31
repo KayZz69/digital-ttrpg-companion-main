@@ -37,7 +37,7 @@ export const backgrounds: Background[] = [
     languages: [],
     equipment: [
       { itemName: "Crowbar" },
-      { itemName: "Dark Common Clothes" },
+      { itemName: "Dark Clothes" },
       { itemName: "Thieves' Tools" },
     ],
     startingGoldGP: 15,
@@ -93,7 +93,7 @@ export const backgrounds: Background[] = [
     languages: [],
     equipment: [
       { itemName: "Herbalism Kit" },
-      { itemName: "Blanket" },
+      { itemName: "Winter Blanket" },
       { itemName: "Scroll Case" },
     ],
     startingGoldGP: 5,
@@ -123,6 +123,7 @@ export const backgrounds: Background[] = [
       { itemName: "Staff" },
       { itemName: "Traveler's Clothes" },
       { itemName: "Hunting Trap" },
+      { itemName: "Trophy" },
     ],
     startingGoldGP: 10,
   },
@@ -164,8 +165,9 @@ export const backgrounds: Background[] = [
     languages: [],
     equipment: [
       { itemName: "Insignia of Rank" },
-      { itemName: "Common Clothes" },
+      { itemName: "Trophy" },
       { itemName: "Dice Set" },
+      { itemName: "Common Clothes" },
     ],
     startingGoldGP: 10,
   },
@@ -178,6 +180,8 @@ export const backgrounds: Background[] = [
     languages: [],
     equipment: [
       { itemName: "Small Knife" },
+      { itemName: "Map of Home City" },
+      { itemName: "Pet Mouse" },
       { itemName: "Common Clothes" },
     ],
     startingGoldGP: 10,

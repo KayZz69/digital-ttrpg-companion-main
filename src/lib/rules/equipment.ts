@@ -317,9 +317,8 @@ const BACKGROUND_EQUIPMENT: Readonly<Record<string, BackgroundEquipmentRule>> = 
     backgroundId: "hermit",
     items: [
       item("Herbalism Kit"),
-      item("Blanket"),
-      item("Scroll Case"),
       item("Winter Blanket"),
+      item("Scroll Case"),
     ],
     startingGoldGP: 5,
   },
