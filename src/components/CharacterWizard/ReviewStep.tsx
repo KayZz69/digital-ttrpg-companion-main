@@ -2,10 +2,25 @@ import { DnD5eCharacter, DnD5eAbilityScores } from "@/types/character";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Shield, Sparkles, Scroll } from "lucide-react";
+import { User, Shield, Sparkles, Scroll, BookOpen } from "lucide-react";
 import { applyAbilityBonuses, ABILITY_KEYS } from "@/lib/characterCreationRules";
-import { getClassSpellcastingAbility, getRaceByName } from "@/lib/dndCompendium";
-import { getSpellSelectionState } from "@/lib/dndRules";
+import {
+  getClassSpellcastingAbility,
+  getClassHitDie,
+  getClassSavingThrowKeys,
+  getClassSkillChoices,
+  getClassExpertiseSelectionCount,
+  getClassByName,
+  getRaceByName,
+  isSpellcastingClass,
+} from "@/lib/dndCompendium";
+import {
+  getSpellSelectionState,
+  getLevelOneHitPoints,
+  getAbilityModifier,
+  getProficiencyBonus,
+} from "@/lib/dndRules";
+import { getStartingGoldBudget } from "@/data";
 
 interface ReviewStepProps {
   character: Partial<DnD5eCharacter>;
@@ -225,6 +240,9 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
         </CardContent>
       </Card>
 
+      {/* Rules Applied */}
+      <RulesAppliedPanel character={character} effectiveAbilityScores={effectiveAbilityScores} spellSummary={spellSummary} />
+
       <Card className="border-dashed bg-muted/30">
         <CardContent className="pt-6">
           <p className="text-sm text-center text-muted-foreground">
@@ -236,3 +254,209 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
     </div>
   );
 };
+
+/* ------------------------------------------------------------------ */
+/*  Rules Applied Panel                                               */
+/* ------------------------------------------------------------------ */
+
+interface RulesAppliedPanelProps {
+  character: Partial<DnD5eCharacter>;
+  effectiveAbilityScores: DnD5eAbilityScores;
+  spellSummary: ReturnType<typeof getSpellSelectionState> | null;
+}
+
+const ABILITY_FULL_LABELS: Record<keyof DnD5eAbilityScores, string> = {
+  strength: "Strength",
+  dexterity: "Dexterity",
+  constitution: "Constitution",
+  intelligence: "Intelligence",
+  wisdom: "Wisdom",
+  charisma: "Charisma",
+};
+
+function RulesAppliedPanel({ character, effectiveAbilityScores, spellSummary }: RulesAppliedPanelProps) {
+  const className = character.class || "";
+  const level = character.level || 1;
+  const conScore = effectiveAbilityScores.constitution;
+  const conMod = getAbilityModifier(conScore);
+  const hitDie = getClassHitDie(className);
+  const hp = getLevelOneHitPoints(className, conScore);
+  const profBonus = getProficiencyBonus(level);
+
+  // Saving throws
+  const savingThrowKeys = getClassSavingThrowKeys(className);
+  const savingThrowLabels = savingThrowKeys.map((k) => ABILITY_FULL_LABELS[k]);
+
+  // Skills
+  const classSkillChoices = getClassSkillChoices(className);
+  const backgroundSkillCount = character.backgroundSkills?.length ?? 0;
+  const expertiseCount = getClassExpertiseSelectionCount(className, level);
+
+  // Spellcasting
+  const spellcastingAbility = getClassSpellcastingAbility(className);
+  const isSpellcaster = isSpellcastingClass(className);
+
+  // Equipment
+  const classData = getClassByName(className);
+  const equipMode = character.equipmentSelectionMode;
+  let equipmentLabel: string;
+  if (equipMode === "gold-buy" && classData) {
+    const budget = getStartingGoldBudget(classData.id);
+    equipmentLabel = `Gold-buy, ${budget} gp budget`;
+  } else {
+    equipmentLabel = "Class starting package";
+  }
+
+  // Background
+  const bgName = character.background;
+  const bgSkills = character.backgroundSkills ?? [];
+  const bgTools = character.backgroundTools ?? [];
+  const bgLanguages = character.backgroundLanguages ?? [];
+  const bgFeat = character.backgroundFeat;
+
+  return (
+    <Card data-testid="rules-summary">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-primary" />
+          <CardTitle className="text-lg">Rules Applied (2024 PHB)</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* Hit Points */}
+        <RuleRow
+          label="Hit Points"
+          value={`Level 1 HP: d${hitDie} + ${conMod >= 0 ? conMod : `(${conMod})`} = ${hp}`}
+        />
+
+        {/* Proficiency Bonus */}
+        <RuleRow label="Proficiency Bonus" value={`+${profBonus} (Level ${level})`} />
+
+        {/* Saving Throws */}
+        <RuleRow
+          label="Saving Throws"
+          value={savingThrowLabels.length > 0 ? savingThrowLabels.join(", ") : "None"}
+        />
+
+        {/* Skill Proficiencies */}
+        <RuleRow
+          label="Skill Proficiencies"
+          value={formatSkillSummary(classSkillChoices.choose, backgroundSkillCount, expertiseCount)}
+        />
+
+        {/* Spellcasting (conditional) */}
+        {isSpellcaster && spellcastingAbility && (
+          <SpellcastingRuleRows
+            abilityKey={spellcastingAbility}
+            abilityScore={effectiveAbilityScores[spellcastingAbility]}
+            profBonus={profBonus}
+            spellSummary={spellSummary}
+          />
+        )}
+
+        {/* Equipment */}
+        <RuleRow label="Equipment" value={equipmentLabel} />
+
+        {/* Background */}
+        {bgName && (
+          <RuleRow
+            label="Background"
+            value={formatBackgroundSummary(bgName, bgSkills, bgTools, bgLanguages, bgFeat)}
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Small sub-components                                              */
+/* ------------------------------------------------------------------ */
+
+function RuleRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-baseline gap-1">
+      <span className="text-sm text-muted-foreground shrink-0">{label}:</span>
+      <span className="text-sm">{value}</span>
+    </div>
+  );
+}
+
+interface SpellcastingRuleRowsProps {
+  abilityKey: keyof DnD5eAbilityScores;
+  abilityScore: number;
+  profBonus: number;
+  spellSummary: ReturnType<typeof getSpellSelectionState> | null;
+}
+
+function SpellcastingRuleRows({ abilityKey, abilityScore, profBonus, spellSummary }: SpellcastingRuleRowsProps) {
+  const abilityMod = getAbilityModifier(abilityScore);
+  const spellSaveDC = 8 + profBonus + abilityMod;
+  const spellAttackBonus = profBonus + abilityMod;
+  const abilityLabel = ABILITY_FULL_LABELS[abilityKey];
+
+  return (
+    <div className="space-y-1 pl-0">
+      <span className="text-sm text-muted-foreground">Spellcasting:</span>
+      <div className="pl-4 space-y-1">
+        <p className="text-sm">Ability: {abilityLabel}</p>
+        <p className="text-sm">
+          Spell Save DC: 8 + {profBonus} + {abilityMod >= 0 ? abilityMod : `(${abilityMod})`} = {spellSaveDC}
+        </p>
+        <p className="text-sm">
+          Spell Attack: +{profBonus} + {abilityMod >= 0 ? abilityMod : `(${abilityMod})`} = {spellAttackBonus >= 0 ? `+${spellAttackBonus}` : spellAttackBonus}
+        </p>
+        {spellSummary && (
+          <>
+            <p className="text-sm">
+              Cantrips: {spellSummary.currentCantrips}
+              {spellSummary.maxCantrips !== null ? ` / ${spellSummary.maxCantrips}` : ""}
+            </p>
+            <p className="text-sm">
+              Leveled Spells: {spellSummary.currentLeveledSpells}
+              {spellSummary.maxLeveledSpells !== null ? ` / ${spellSummary.maxLeveledSpells}` : ""}
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatSkillSummary(classChoices: number, backgroundCount: number, expertiseCount: number): string {
+  const parts: string[] = [];
+  if (classChoices > 0) {
+    parts.push(`${classChoices} class`);
+  }
+  if (backgroundCount > 0) {
+    parts.push(`${backgroundCount} background`);
+  }
+  const base = parts.length > 0 ? parts.join(" + ") : "0";
+  if (expertiseCount > 0) {
+    return `${base} (${expertiseCount} expertise)`;
+  }
+  return base;
+}
+
+function formatBackgroundSummary(
+  name: string,
+  skills: string[],
+  tools: string[],
+  languages: string[],
+  feat?: string
+): string {
+  const parts = [name];
+  if (skills.length > 0) {
+    parts.push(`Skills: ${skills.join(", ")}`);
+  }
+  if (tools.length > 0) {
+    parts.push(`Tools: ${tools.join(", ")}`);
+  }
+  if (languages.length > 0) {
+    parts.push(`Languages: ${languages.join(", ")}`);
+  }
+  if (feat) {
+    parts.push(`Feat: ${feat}`);
+  }
+  return parts.join(" | ");
+}
