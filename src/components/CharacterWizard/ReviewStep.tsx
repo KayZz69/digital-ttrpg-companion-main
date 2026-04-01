@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { User, Shield, Sparkles, Scroll } from "lucide-react";
-import { applyAbilityBonuses } from "@/lib/characterCreationRules";
-import { getClassSpellcastingAbility } from "@/lib/dndCompendium";
+import { applyAbilityBonuses, ABILITY_KEYS } from "@/lib/characterCreationRules";
+import { getClassSpellcastingAbility, getRaceByName } from "@/lib/dndCompendium";
 import { getSpellSelectionState } from "@/lib/dndRules";
 
 interface ReviewStepProps {
@@ -12,22 +12,35 @@ interface ReviewStepProps {
   setCharacter: (character: Partial<DnD5eCharacter>) => void;
 }
 
+const DEFAULT_SCORES: DnD5eAbilityScores = {
+  strength: 10,
+  dexterity: 10,
+  constitution: 10,
+  intelligence: 10,
+  wisdom: 10,
+  charisma: 10,
+};
+
+const ABILITY_LABELS: Record<keyof DnD5eAbilityScores, string> = {
+  strength: "STR",
+  dexterity: "DEX",
+  constitution: "CON",
+  intelligence: "INT",
+  wisdom: "WIS",
+  charisma: "CHA",
+};
+
 export const ReviewStep = ({ character }: ReviewStepProps) => {
   const getModifier = (score: number): string => {
     const mod = Math.floor((score - 10) / 2);
     return mod >= 0 ? `+${mod}` : `${mod}`;
   };
-  const effectiveAbilityScores = applyAbilityBonuses(
-    (character.abilityScores || {
-      strength: 10,
-      dexterity: 10,
-      constitution: 10,
-      intelligence: 10,
-      wisdom: 10,
-      charisma: 10,
-    }) as DnD5eAbilityScores,
-    character.raceAbilityBonuses
-  );
+  const baseAbilityScores = (character.abilityScores || DEFAULT_SCORES) as DnD5eAbilityScores;
+  const bonuses = character.raceAbilityBonuses;
+  const effectiveAbilityScores = applyAbilityBonuses(baseAbilityScores, bonuses);
+
+  const raceData = getRaceByName(character.race || "");
+
   const spellcastingAbility = getClassSpellcastingAbility(character.class || "");
   const spellSummary =
     character.class && spellcastingAbility
@@ -97,34 +110,78 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
               <Sparkles className="h-5 w-5 text-primary" />
               <CardTitle className="text-lg">Ability Scores</CardTitle>
             </div>
+            <CardDescription>Final scores after racial modifiers</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-3">
-              {(Object.keys(effectiveAbilityScores || {}) as (keyof DnD5eAbilityScores)[]).map(
-                (ability) => {
-                  const score = effectiveAbilityScores?.[ability] || 10;
-                  const modifier = getModifier(score);
+              {ABILITY_KEYS.map((ability) => {
+                const baseScore = baseAbilityScores[ability];
+                const finalScore = effectiveAbilityScores[ability];
+                const racialBonus = bonuses?.[ability] || 0;
+                const modifier = getModifier(finalScore);
 
-                  return (
-                    <div
-                      key={ability}
-                      className="flex flex-col items-center p-3 bg-muted rounded-lg"
-                    >
-                      <p className="text-xs text-muted-foreground capitalize mb-1">{ability.slice(0, 3)}</p>
-                      <p className="text-2xl font-bold">{score}</p>
-                      <p className={`text-sm font-semibold ${
-                        parseInt(modifier) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                      }`}>
-                        {modifier}
+                return (
+                  <div
+                    key={ability}
+                    className="flex flex-col items-center p-3 bg-muted rounded-lg"
+                    data-testid={`ability-${ability}`}
+                  >
+                    <p className="text-xs text-muted-foreground mb-1">{ABILITY_LABELS[ability]}</p>
+                    <p className="text-2xl font-bold">{finalScore}</p>
+                    <p className={`text-sm font-semibold ${
+                      parseInt(modifier) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                    }`}>
+                      {modifier}
+                    </p>
+                    {racialBonus > 0 && (
+                      <p className="text-xs text-primary mt-1" data-testid={`racial-bonus-${ability}`}>
+                        {baseScore} + {racialBonus} racial
                       </p>
-                    </div>
-                  );
-                }
-              )}
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Race Traits and Languages */}
+      {raceData && (raceData.traits.length > 0 || (raceData.languages && raceData.languages.length > 0)) && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Race Features</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {raceData.languages && raceData.languages.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Languages</p>
+                <div className="flex flex-wrap gap-2">
+                  {raceData.languages.map((lang) => (
+                    <Badge key={lang} variant="outline">{lang}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {raceData.traits.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Racial Traits</p>
+                <div className="space-y-2">
+                  {raceData.traits.map((trait) => (
+                    <div key={trait.name} className="border rounded-md p-3">
+                      <p className="font-semibold text-sm">{trait.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{trait.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Card */}
       <Card className="bg-primary/5 border-primary/50">
@@ -155,10 +212,10 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
               Equipment source:{" "}
               {character.equipmentSelectionMode === "gold-buy" ? "Gold-buy selection" : "Class package"}
             </p>
-            {character.raceAbilityBonuses && (
+            {bonuses && (
               <p>
                 Race bonuses applied:{" "}
-                {Object.entries(character.raceAbilityBonuses)
+                {Object.entries(bonuses)
                   .filter(([, value]) => (value || 0) > 0)
                   .map(([ability, value]) => `${ability} +${value}`)
                   .join(", ") || "None"}

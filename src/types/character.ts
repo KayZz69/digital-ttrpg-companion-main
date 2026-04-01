@@ -218,6 +218,14 @@ export interface DnD5eCharacter {
   background?: string;
   /** Skills granted by the chosen background */
   backgroundSkills?: string[];
+  /** Tool proficiencies granted by the chosen background */
+  backgroundTools?: string[];
+  /** Language proficiencies granted by the chosen background */
+  backgroundLanguages?: string[];
+  /** Starting equipment granted by the chosen background */
+  backgroundEquipment?: string[];
+  /** Origin feat granted by the chosen background */
+  backgroundFeat?: string;
   /** Ability choices selected for races that grant flexible ASIs */
   raceAbilityChoices?: Array<keyof DnD5eAbilityScores>;
   /** Calculated race ability bonuses applied at review/finalization */
