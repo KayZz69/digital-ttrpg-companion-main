@@ -1,10 +1,12 @@
 # Digital TTRPG Companion — Roadmap
 
-> Last updated: 2026-03-27
+> Last updated: 2026-04-01
 
 ## Vision
 
-A complete client-side DnD 5e companion for character creation, management, combat tracking, dice rolling, and session journaling — all in the browser with localStorage persistence.
+A persistent mechanical state layer for AI Game Masters. AI GMs lose character state across sessions — stats, HP, inventory, active effects, dice outcomes get pushed out of context. This companion lives outside the AI's context window and provides structured state at session start.
+
+**MVP:** A JSON-exportable character state bundle (stats, HP, inventory, active effects, session log) that an AI GM can be given at the start of each session. Character creation feeds this state; the roadmap is oriented around what the AI GM needs to read and reference, not just what a character sheet displays.
 
 ---
 
@@ -32,9 +34,13 @@ Bring the character creation wizard into full alignment with the chosen rules ba
 
 ## Phase 4: Session Tools
 
+> **Note:** This phase contains the highest-value deliverables for the AI GM use case — session export, structured JSON handoff, and the state bundle that makes character data consumable outside the app.
+
 - Journal improvements (session notes, timeline)
 - NPC library enhancements
 - Compendium search and filtering improvements
+- Structured JSON export of character state for AI GM consumption
+- Session start bundle: stats, HP, inventory, active effects, session log summary
 
 ## Phase 5: Quality & Polish
 
