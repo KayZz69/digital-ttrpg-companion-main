@@ -1,6 +1,8 @@
 # Architecture
 
-Digital TTRPG Companion is a React SPA for character management, combat tracking, dice rolling, and session journaling.
+Digital TTRPG Companion is a persistent mechanical state layer for AI Game Masters. AI GMs lose character state across sessions — stats, HP, inventory, active effects, dice outcomes get pushed out of context. This app lives outside the AI's context window and provides structured state at session start.
+
+Export and JSON handoff are first-class architectural concerns. The state bundle (character stats, HP, inventory, active effects, session log) must be serializable, stable, and consumable by external systems — whether that's a readable web page, a structured JSON export, or a paste-able context bundle.
 
 ## Stack
 

@@ -30,7 +30,9 @@ ASK FIRST:
 
 ## Project Overview
 
-Digital TTRPG Companion is a React + TypeScript SPA for DnD 5e character management, combat tracking, dice rolling, NPC storage, compendium browsing, and session journaling. Persistence is localStorage only.
+Digital TTRPG Companion is a persistent mechanical state layer for AI Game Masters. AI GMs lose character state across sessions — stats, HP, inventory, active effects, dice outcomes get pushed out of context. This companion lives outside the AI's context window and provides structured state at session start.
+
+Built as a React + TypeScript SPA with localStorage persistence. Current work focuses on DnD 5e character creation rules compliance, which feeds the character state that AI GMs consume. The target deliverable is a JSON-exportable state bundle (stats, HP, inventory, active effects, session log) an AI GM can be given at session start.
 
 Canonical architecture details, routes, storage keys, and mechanics boundaries live in `ARCHITECTURE.md`.
 

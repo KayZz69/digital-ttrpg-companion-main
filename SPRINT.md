@@ -29,6 +29,8 @@
 ## Next Sprint Preview
 - CCR-013–CCR-014: Wizard validation hardening, review step rule summary
 
+> End goal: Phase 4 (session tools / AI GM state handoff) is the target — character creation compliance feeds the structured state bundle that AI GMs consume at session start.
+
 ## Nightly Handoff (Bulhkin)
 <!-- Updated by agents at end of each session -->
 ### Tonight
