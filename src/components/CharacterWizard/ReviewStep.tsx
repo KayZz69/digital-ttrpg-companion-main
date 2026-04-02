@@ -2,10 +2,10 @@ import { DnD5eCharacter, DnD5eAbilityScores } from "@/types/character";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Shield, Sparkles, Scroll } from "lucide-react";
+import { User, Shield, Sparkles, Scroll, Swords, Heart, CheckCircle2, XCircle, Backpack } from "lucide-react";
 import { applyAbilityBonuses, ABILITY_KEYS } from "@/lib/characterCreationRules";
-import { getClassSpellcastingAbility, getRaceByName } from "@/lib/dndCompendium";
-import { getSpellSelectionState } from "@/lib/dndRules";
+import { getClassSpellcastingAbility, getRaceByName, getClassHitDie } from "@/lib/dndCompendium";
+import { getSpellSelectionState, getLevelOneHitPoints } from "@/lib/dndRules";
 
 interface ReviewStepProps {
   character: Partial<DnD5eCharacter>;
@@ -182,6 +182,229 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
           </CardContent>
         </Card>
       )}
+
+      {/* Skills & Proficiencies */}
+      {character.skills && Object.keys(character.skills).some((k) => character.skills![k] !== "none") && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Swords className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Skills & Proficiencies</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {character.backgroundSkills && character.backgroundSkills.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Background Skills</p>
+                <div className="flex flex-wrap gap-2">
+                  {character.backgroundSkills.map((skill) => (
+                    <Badge key={`bg-${skill}`} variant="secondary">{skill}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(() => {
+              const bgSet = new Set(character.backgroundSkills || []);
+              const classSkills = Object.entries(character.skills || {})
+                .filter(([name, level]) => level !== "none" && !bgSet.has(name))
+                .map(([name]) => name);
+              if (classSkills.length === 0) return null;
+              return (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Class Skills</p>
+                  <div className="flex flex-wrap gap-2">
+                    {classSkills.map((skill) => (
+                      <Badge key={`cls-${skill}`} variant="outline">{skill}</Badge>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            {(() => {
+              const expertSkills = Object.entries(character.skills || {})
+                .filter(([, level]) => level === "expert")
+                .map(([name]) => name);
+              if (expertSkills.length === 0) return null;
+              return (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Expertise</p>
+                  <div className="flex flex-wrap gap-2">
+                    {expertSkills.map((skill) => (
+                      <Badge key={`exp-${skill}`} className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        {skill} (Expertise)
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Saving Throws */}
+      {character.savingThrows && Object.values(character.savingThrows).some(Boolean) && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Saving Throws</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(character.savingThrows)
+                .filter(([, proficient]) => proficient)
+                .map(([ability]) => (
+                  <Badge key={ability} variant="secondary">
+                    {ABILITY_LABELS[ability as keyof DnD5eAbilityScores] || ability}
+                  </Badge>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Equipment & Inventory */}
+      {character.inventory && character.inventory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Backpack className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Equipment & Inventory</CardTitle>
+            </div>
+            <CardDescription>
+              Source: {character.equipmentSelectionMode === "gold-buy" ? "Gold-buy selection" : "Class package"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {character.inventory.map((item) => (
+                <div key={item.id} className="flex justify-between text-sm">
+                  <span>{item.name}</span>
+                  <span className="text-muted-foreground">x{item.quantity}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Background Details */}
+      {character.background && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Scroll className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Background Details</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Background</p>
+              <p className="font-semibold">{character.background}</p>
+            </div>
+            {character.backgroundTools && character.backgroundTools.length > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Tool Proficiencies</p>
+                <div className="flex flex-wrap gap-2">
+                  {character.backgroundTools.map((tool) => (
+                    <Badge key={tool} variant="outline">{tool}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {character.backgroundLanguages && character.backgroundLanguages.length > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Languages</p>
+                <div className="flex flex-wrap gap-2">
+                  {character.backgroundLanguages.map((lang) => (
+                    <Badge key={lang} variant="outline">{lang}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {character.backgroundEquipment && character.backgroundEquipment.length > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Starting Equipment</p>
+                <p className="text-sm">{character.backgroundEquipment.join(", ")}</p>
+              </div>
+            )}
+            {character.backgroundFeat && (
+              <div>
+                <p className="text-sm text-muted-foreground">Origin Feat</p>
+                <Badge variant="secondary">{character.backgroundFeat}</Badge>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Hit Points Preview */}
+      {character.class && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Hit Points</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const conScore = effectiveAbilityScores.constitution;
+              const conMod = Math.floor((conScore - 10) / 2);
+              const hitDie = getClassHitDie(character.class!);
+              const hp = getLevelOneHitPoints(character.class!, conScore);
+              return (
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold" data-testid="hp-value">{hp}</p>
+                    <p className="text-xs text-muted-foreground">HP at Level 1</p>
+                  </div>
+                  <Separator orientation="vertical" className="h-12" />
+                  <div className="text-sm text-muted-foreground">
+                    <p>Hit Die: d{hitDie}</p>
+                    <p>Base: {hitDie} + CON modifier ({conMod >= 0 ? `+${conMod}` : conMod})</p>
+                  </div>
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Validation Checklist */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Validation Checklist</CardTitle>
+          </div>
+          <CardDescription>Verify all steps are complete before creating your character</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {[
+              { label: "Name", pass: !!character.name && character.name.trim().length > 0 },
+              { label: "Race", pass: !!character.race },
+              { label: "Class", pass: !!character.class },
+              { label: "Ability Scores", pass: !!character.abilityScores },
+              { label: "Background", pass: !!character.background },
+              { label: "Skills", pass: !!character.skills && Object.values(character.skills).some((v) => v !== "none") },
+              { label: "Equipment", pass: !!character.inventory && character.inventory.length > 0 },
+            ].map((step) => (
+              <div key={step.label} className="flex items-center gap-2 text-sm" data-testid={`validation-${step.label.toLowerCase().replace(/\s+/g, "-")}`}>
+                {step.pass ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                )}
+                <span className={step.pass ? "text-foreground" : "text-muted-foreground"}>{step.label}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Summary Card */}
       <Card className="bg-primary/5 border-primary/50">
