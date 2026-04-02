@@ -1,16 +1,13 @@
 # Digital TTRPG Companion — Active Sprint
 
 > Source: extracted from [ROADMAP.md](./ROADMAP.md) and [character-creation-implementation-backlog.old.md](./character-creation-implementation-backlog.old.md)
-> Last updated: 2026-04-01
+> Last updated: 2026-04-03
 
-## Current Sprint: CCR-008 through CCR-012 — Equipment Rules, Background/Race/Skills Integration
+## Current Sprint: CCR-013 through CCR-014 — Wizard Validation & Review Summary
 
 ### Tasks
-- [x] CCR-008 — Equipment rules data: multi-package class equipment, background equipment, gold-buy budgets
-- [x] CCR-009 — Starting equipment step rewrite: package selection with validation, gold-buy budget enforcement
-- [x] CCR-010 — Background step and data integration: tools, languages, equipment, feat grants, skill overlap warnings
-- [x] CCR-011 — Race and origin application: review step shows final post-modifier ability scores, race features/languages
-- [x] CCR-012 — Skills step rule correction: expertise gating by class/level, over-selection blocking, background skill exclusion
+- [x] CCR-013 — Wizard validation hardening: inline error display on every step, Next button blocked by validation
+- [x] CCR-014 — Review step rule summary: structured sections for skills, background grants, saving throws, spells, equipment
 
 ### Completed
 - [x] CCR-001 — Rule baseline decision (2024 PHB documented)
@@ -25,20 +22,27 @@
 - [x] CCR-010 — Background step and data integration
 - [x] CCR-011 — Race and origin application
 - [x] CCR-012 — Skills step rule correction
+- [x] CCR-013 — Wizard validation hardening
+- [x] CCR-014 — Review step rule summary
 
 ## Next Sprint Preview
-- CCR-013–CCR-014: Wizard validation hardening, review step rule summary
+- CCR-015–CCR-016: End-to-end test coverage, documentation and QA checklist
 
 > End goal: Phase 4 (session tools / AI GM state handoff) is the target — character creation compliance feeds the structured state bundle that AI GMs consume at session start.
 
 ## Nightly Handoff (Bulhkin)
 <!-- Updated by agents at end of each session -->
 ### Tonight
-- Sprint CCR-008–012 is complete. Next sprint: CCR-013–014 (wizard validation hardening, review step rule summary).
+- Sprint CCR-013–014 is complete. Next sprint: CCR-015–016 (end-to-end test coverage, documentation and QA checklist).
 
-### Maintenance (2026-04-01)
-- [x] Run all tests and report failures — 912 tests pass (includes new CCR-008-012 coverage), 0 failures
+### Maintenance (2026-04-03)
+- [x] Run all tests and report failures — 542 tests pass (525 baseline + 17 new CCR-013/014 coverage), 0 failures
 - [x] Code review: flag smells, duplication, anti-patterns — no critical issues; pre-existing warnings only (shadcn fast-refresh, useEffect deps)
 - [x] Check for security issues (hardcoded secrets, unsafe inputs) — clean
-- [x] Check for unused imports, dead code, stale TODOs — clean
+- [x] Check for unused imports, dead code, stale TODOs — clean (1 docstring TODO in data/README.md, intentional)
 - [x] Check localStorage key compatibility for soloquest_* keys — all references go through STORAGE_KEYS constant, no renames
+
+### Last (2026-04-03)
+- CCR-013: Added inline validation error Alert to CharacterWizard.tsx — shows destructive Alert below step content when getStepError() returns non-null. 6 new tests.
+- CCR-014: Rewrote ReviewStep.tsx with 5 structured sections: Skills & Proficiencies (background/class/expertise sources), Saving Throws, Background Grants (skills/tools/languages/equipment/feat), Spells (grouped by level), Equipment (inventory list with weights). Migrated from legacy getSpellSelectionState to registry-backed getRegistrySpellSelectionState. 11 new tests.
+- Build, lint, and all 542 tests pass.
