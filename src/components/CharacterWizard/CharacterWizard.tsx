@@ -1,13 +1,13 @@
-import { type ComponentType, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentType, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DnD5eCharacter, Character } from "@/types/character";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, writeCharacters } from "@/lib/storage";
 import {
-  getAllCompendiumEquipment,
   getClassByName,
   getClassSavingThrowProficiencies,
   getClassSpellcastingAbility,
@@ -20,9 +20,10 @@ import {
   toCharacterSpellSlots,
 } from "@/lib/rules/spells";
 import { reconcileClassChange } from "@/lib/rules/classChange";
-import { applyAbilityBonuses } from "@/lib/characterCreationRules";
-import { getStepError as getStepValidationError } from "@/utils/wizardValidation";
-import type { WizardStepKey } from "@/utils/wizardValidation";
+import {
+  applyAbilityBonuses,
+} from "@/lib/characterCreationRules";
+import { getStepValidationError, type WizardStepKey } from "@/lib/wizardValidation";
 import { BasicInfoStep } from "./BasicInfoStep";
 import { RaceSelectionStep } from "./RaceSelectionStep";
 import { ClassSelectionStep } from "./ClassSelectionStep";
@@ -89,10 +90,6 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
     hitPoints: { current: 0, max: 0 },
     inventory: [],
   });
-  const compendiumById = useMemo(
-    () => new Map(getAllCompendiumEquipment().map((entry) => [entry.id, entry])),
-    []
-  );
 
   const steps = ALL_STEPS.filter((step) =>
     step.showWhen ? step.showWhen(character) : true
@@ -196,26 +193,17 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
   const progress = (currentStep / steps.length) * 100;
   const CurrentStepComponent = currentStepDefinition?.component;
 
-  const getCurrentEquipmentCostInGp = (): number =>
-    (character.inventory || []).reduce((sum, item) => {
-      if (!item.sourceItemId) {
-        return sum;
-      }
-      const source = compendiumById.get(item.sourceItemId);
-      if (!source) {
-        return sum;
-      }
-      const { quantity, unit } = source.source.cost;
-      const unitValue =
-        unit === "cp" ? quantity / 100 : unit === "sp" ? quantity / 10 : unit === "pp" ? quantity * 10 : quantity;
-      return sum + unitValue * item.quantity;
-    }, 0);
-
   const getStepError = (stepKey: WizardStepKey): string | null => {
-    return getStepValidationError(stepKey, character, {
-      equipmentCostInGp: getCurrentEquipmentCostInGp(),
-      visibleStepKeys: steps.map((step) => step.key),
-    });
+    if (stepKey === "review") {
+      const keysToValidate = steps
+        .map((step) => step.key)
+        .filter((key) => key !== "review");
+      const firstError = keysToValidate
+        .map((key) => getStepValidationError(key, character))
+        .find(Boolean);
+      return firstError || null;
+    }
+    return getStepValidationError(stepKey, character);
   };
 
   const canProceed = () => {
@@ -380,6 +368,18 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
             setCharacter={setCharacter}
           />
         </div>
+
+        {/* Inline validation feedback */}
+        {currentStepDefinition && getStepError(currentStepDefinition.key) && (
+          <div className="mt-4" data-testid="step-validation-error">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {getStepError(currentStepDefinition.key)}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         {/* Navigation */}
         <div className="flex justify-between mt-8">
