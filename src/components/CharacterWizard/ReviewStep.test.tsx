@@ -3,156 +3,317 @@ import { render, screen } from "@testing-library/react";
 import { ReviewStep } from "./ReviewStep";
 import { DnD5eCharacter } from "@/types/character";
 
-function makeCharacter(overrides: Partial<DnD5eCharacter> = {}): Partial<DnD5eCharacter> {
+function makeCharacter(
+  overrides: Partial<DnD5eCharacter> = {}
+): Partial<DnD5eCharacter> {
   return {
-    name: "Test Hero",
-    race: "Human",
+    name: "Thorin",
+    race: "Dwarf",
     class: "Fighter",
-    level: 1,
     background: "Soldier",
+    level: 1,
     abilityScores: {
-      strength: 16, dexterity: 14, constitution: 14,
-      intelligence: 10, wisdom: 12, charisma: 8,
+      strength: 16,
+      dexterity: 12,
+      constitution: 14,
+      intelligence: 10,
+      wisdom: 10,
+      charisma: 8,
     },
+    raceAbilityBonuses: { constitution: 2 },
     skills: {
       Athletics: "proficient",
       Intimidation: "proficient",
       Perception: "proficient",
+      Insight: "proficient",
     },
     backgroundSkills: ["Athletics", "Intimidation"],
     backgroundTools: ["Dice set", "Vehicles (land)"],
-    backgroundLanguages: [],
-    backgroundEquipment: ["An insignia of rank", "A trophy", "A set of bone dice", "Common clothes", "A belt pouch containing 10 gp"],
     backgroundFeat: "Savage Attacker",
-    savingThrows: { strength: true, dexterity: false, constitution: true, intelligence: false, wisdom: false, charisma: false },
+    savingThrows: { strength: true, constitution: true },
     inventory: [
-      { id: "1", name: "Chain Mail", quantity: 1, weight: 55, equipped: false },
-      { id: "2", name: "Longsword", quantity: 1, weight: 3, equipped: false },
-      { id: "3", name: "Shield", quantity: 1, weight: 6, equipped: false },
+      { id: "sword-1", name: "Longsword", quantity: 1, weight: 3, equipped: false },
+      { id: "shield-1", name: "Shield", quantity: 1, weight: 6, equipped: false },
+      { id: "arrows-1", name: "Arrows", quantity: 20, weight: 1, equipped: false },
     ],
     equipmentSelectionMode: "packages",
-    preparedSpells: [],
+    startingEquipmentChoiceId: "fighter-martial-shield",
     ...overrides,
   };
 }
 
-function makeSpellcaster(): Partial<DnD5eCharacter> {
-  return makeCharacter({
-    class: "Wizard",
-    background: "Sage",
-    backgroundSkills: ["Arcana", "History"],
-    backgroundFeat: "Magic Initiate",
-    skills: {
-      Arcana: "proficient",
-      History: "proficient",
-      Investigation: "proficient",
-      Insight: "proficient",
-    },
-    abilityScores: {
-      strength: 8, dexterity: 14, constitution: 14,
-      intelligence: 16, wisdom: 12, charisma: 10,
-    },
-    savingThrows: { strength: false, dexterity: false, constitution: false, intelligence: true, wisdom: true, charisma: false },
-    preparedSpells: [
-      { id: "1", name: "Fire Bolt", level: 0, school: "Evocation" },
-      { id: "2", name: "Mage Hand", level: 0, school: "Conjuration" },
-      { id: "3", name: "Light", level: 0, school: "Evocation" },
-      { id: "4", name: "Magic Missile", level: 1, school: "Evocation" },
-      { id: "5", name: "Shield", level: 1, school: "Abjuration" },
-    ],
-  });
-}
-
 describe("ReviewStep", () => {
-  it("renders character basic info", () => {
+  it("renders character name, race, class, and level", () => {
     render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
-    expect(screen.getAllByText("Test Hero").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Human")).toBeInTheDocument();
-    expect(screen.getByText("Fighter")).toBeInTheDocument();
-  });
-
-  it("renders ability scores with modifiers", () => {
-    render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
-    // STR 16 = +3 modifier
-    expect(screen.getByTestId("ability-strength")).toHaveTextContent("16");
-    expect(screen.getByTestId("ability-strength")).toHaveTextContent("+3");
-  });
-
-  it("renders background grants section", () => {
-    render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
-    expect(screen.getByText("Background: Soldier")).toBeInTheDocument();
-    expect(screen.getByText("Savage Attacker")).toBeInTheDocument();
-    expect(screen.getByText("Dice set, Vehicles (land)")).toBeInTheDocument();
-  });
-
-  it("renders skill sources (background vs class)", () => {
-    render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
-    expect(screen.getByText("Background Skills")).toBeInTheDocument();
-    expect(screen.getByText("Class Skill Choices")).toBeInTheDocument();
-  });
-
-  it("renders saving throw proficiencies", () => {
-    render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
-    expect(screen.getByText("Saving Throws")).toBeInTheDocument();
-  });
-
-  it("renders equipment inventory", () => {
-    render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
-    // "Starting Equipment" appears in both background grants and equipment card
-    expect(screen.getAllByText("Starting Equipment").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Chain Mail")).toBeInTheDocument();
-    expect(screen.getByText("Longsword")).toBeInTheDocument();
-    expect(screen.getAllByText("Class package").length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("renders spells grouped by level for spellcasters", () => {
-    render(<ReviewStep character={makeSpellcaster()} setCharacter={vi.fn()} />);
-    expect(screen.getByText("Spells")).toBeInTheDocument();
-    expect(screen.getByText("Cantrips")).toBeInTheDocument();
-    // "Level 1" may appear in both the character level badge and spell grouping
+    expect(screen.getAllByText("Thorin").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Dwarf").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Fighter").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Level 1").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Fire Bolt")).toBeInTheDocument();
-    expect(screen.getByText("Magic Missile")).toBeInTheDocument();
   });
 
-  it("does not render spells section for non-casters", () => {
+  it("displays background name", () => {
     render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
-    expect(screen.queryByText("Cantrips")).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Soldier/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders expertise badges when present", () => {
-    const char = makeCharacter({
-      class: "Rogue",
-      skills: {
-        Athletics: "proficient",
-        Intimidation: "proficient",
-        Stealth: "expert",
-        Perception: "expert",
-      },
+  it("shows ability scores with racial bonuses", () => {
+    const { container } = render(
+      <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+    );
+    const conBlock = container.querySelector('[data-testid="ability-constitution"]');
+    expect(conBlock).toBeTruthy();
+    expect(conBlock?.textContent).toContain("16");
+    expect(conBlock?.textContent).toContain("14 + 2 racial");
+  });
+
+  describe("validation summary", () => {
+    it("shows all-valid status for a complete character", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const summary = container.querySelector('[data-testid="validation-summary"]');
+      expect(summary?.textContent).toContain("Ready to Create");
     });
-    render(<ReviewStep character={char} setCharacter={vi.fn()} />);
-    expect(screen.getByText("Expertise")).toBeInTheDocument();
-    expect(screen.getByText("Stealth")).toBeInTheDocument();
-    expect(screen.getByText("Perception")).toBeInTheDocument();
-  });
 
-  it("shows racial ability bonuses in ability score display", () => {
-    const char = makeCharacter({
-      race: "Dwarf",
-      raceAbilityBonuses: { constitution: 2 },
-      abilityScores: {
-        strength: 16, dexterity: 14, constitution: 14,
-        intelligence: 10, wisdom: 12, charisma: 8,
-      },
+    it("shows step badges with status", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      expect(container.querySelector('[data-testid="step-status-basic"]')).toBeTruthy();
+      expect(container.querySelector('[data-testid="step-status-race"]')).toBeTruthy();
+      expect(container.querySelector('[data-testid="step-status-equipment"]')).toBeTruthy();
     });
-    render(<ReviewStep character={char} setCharacter={vi.fn()} />);
-    // CON should show 16 (14 + 2 racial)
-    expect(screen.getByTestId("racial-bonus-constitution")).toHaveTextContent("14 + 2 racial");
+
+    it("flags incomplete steps", () => {
+      const { container } = render(
+        <ReviewStep
+          character={makeCharacter({ name: "" })}
+          setCharacter={vi.fn()}
+        />
+      );
+      const summary = container.querySelector('[data-testid="validation-summary"]');
+      expect(summary?.textContent).toContain("Steps Need Attention");
+      expect(summary?.textContent).toContain("Enter a character name.");
+    });
   });
 
-  it("shows gold-buy equipment mode label", () => {
-    const char = makeCharacter({ equipmentSelectionMode: "gold-buy" });
-    render(<ReviewStep character={char} setCharacter={vi.fn()} />);
-    expect(screen.getByText("Gold-buy selection")).toBeInTheDocument();
+  describe("hit points card", () => {
+    it("displays calculated HP", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const hpCard = container.querySelector('[data-testid="hp-card"]');
+      expect(hpCard).toBeTruthy();
+      // Fighter: d10 + CON mod (+3 for 16 effective CON) = 13 HP
+      expect(hpCard?.textContent).toContain("13");
+      expect(hpCard?.textContent).toContain("HP at Level 1");
+    });
+
+    it("shows hit die and CON modifier breakdown", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const hpCard = container.querySelector('[data-testid="hp-card"]');
+      expect(hpCard?.textContent).toContain("d10");
+      expect(hpCard?.textContent).toContain("+3 CON modifier");
+    });
+  });
+
+  describe("saving throws card", () => {
+    it("displays class saving throw proficiencies", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const savesCard = container.querySelector('[data-testid="saves-card"]');
+      expect(savesCard).toBeTruthy();
+      expect(savesCard?.textContent).toContain("Strength");
+      expect(savesCard?.textContent).toContain("Constitution");
+    });
+  });
+
+  describe("skills card", () => {
+    it("shows proficient skills", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const skillsCard = container.querySelector('[data-testid="skills-card"]');
+      expect(skillsCard).toBeTruthy();
+      expect(
+        container.querySelector('[data-testid="skill-proficient-Athletics"]')
+      ).toBeTruthy();
+      expect(
+        container.querySelector('[data-testid="skill-proficient-Intimidation"]')
+      ).toBeTruthy();
+    });
+
+    it("marks background skills with (bg) indicator", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const athleticsBadge = container.querySelector(
+        '[data-testid="skill-proficient-Athletics"]'
+      );
+      expect(athleticsBadge?.textContent).toContain("(bg)");
+    });
+
+    it("shows expertise skills separately", () => {
+      const { container } = render(
+        <ReviewStep
+          character={makeCharacter({
+            class: "Rogue",
+            skills: {
+              Stealth: "expert",
+              Perception: "proficient",
+              Thieves: "proficient",
+              Athletics: "proficient",
+              Intimidation: "proficient",
+            },
+          })}
+          setCharacter={vi.fn()}
+        />
+      );
+      expect(
+        container.querySelector('[data-testid="skill-expert-Stealth"]')
+      ).toBeTruthy();
+    });
+  });
+
+  describe("background details card", () => {
+    it("displays background skills, tools, and feat", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const bgCard = container.querySelector('[data-testid="background-card"]');
+      expect(bgCard).toBeTruthy();
+      expect(bgCard?.textContent).toContain("Dice set");
+      expect(bgCard?.textContent).toContain("Vehicles (land)");
+      expect(bgCard?.textContent).toContain("Savage Attacker");
+    });
+
+    it("hides background card when no background selected", () => {
+      const { container } = render(
+        <ReviewStep
+          character={makeCharacter({ background: undefined })}
+          setCharacter={vi.fn()}
+        />
+      );
+      expect(
+        container.querySelector('[data-testid="background-card"]')
+      ).toBeNull();
+    });
+  });
+
+  describe("equipment card", () => {
+    it("lists inventory items", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const equipCard = container.querySelector('[data-testid="equipment-card"]');
+      expect(equipCard).toBeTruthy();
+      expect(equipCard?.textContent).toContain("Longsword");
+      expect(equipCard?.textContent).toContain("Shield");
+    });
+
+    it("shows quantity for stacked items", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const equipCard = container.querySelector('[data-testid="equipment-card"]');
+      expect(equipCard?.textContent).toContain("x20");
+    });
+
+    it("shows equipment source", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      const equipCard = container.querySelector('[data-testid="equipment-card"]');
+      expect(equipCard?.textContent).toContain("Class package");
+    });
+
+    it("shows gold-buy source when applicable", () => {
+      const { container } = render(
+        <ReviewStep
+          character={makeCharacter({ equipmentSelectionMode: "gold-buy" })}
+          setCharacter={vi.fn()}
+        />
+      );
+      const equipCard = container.querySelector('[data-testid="equipment-card"]');
+      expect(equipCard?.textContent).toContain("Gold-buy selection");
+    });
+
+    it("hides equipment card when inventory is empty", () => {
+      const { container } = render(
+        <ReviewStep
+          character={makeCharacter({ inventory: [] })}
+          setCharacter={vi.fn()}
+        />
+      );
+      expect(
+        container.querySelector('[data-testid="equipment-card"]')
+      ).toBeNull();
+    });
+  });
+
+  describe("spells card", () => {
+    it("does not render for non-caster classes", () => {
+      const { container } = render(
+        <ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />
+      );
+      expect(
+        container.querySelector('[data-testid="spells-card"]')
+      ).toBeNull();
+    });
+
+    it("renders spell details for caster classes", () => {
+      const { container } = render(
+        <ReviewStep
+          character={makeCharacter({
+            class: "Wizard",
+            preparedSpells: [
+              {
+                id: "c1",
+                name: "Fire Bolt",
+                level: 0,
+                school: "Evocation",
+                castingTime: "1 action",
+                range: "120 feet",
+                components: "V, S",
+                duration: "Instantaneous",
+                description: "A beam of fire.",
+              },
+              {
+                id: "s1",
+                name: "Magic Missile",
+                level: 1,
+                school: "Evocation",
+                castingTime: "1 action",
+                range: "120 feet",
+                components: "V, S",
+                duration: "Instantaneous",
+                description: "Darts of force.",
+              },
+            ],
+          })}
+          setCharacter={vi.fn()}
+        />
+      );
+      const spellsCard = container.querySelector('[data-testid="spells-card"]');
+      expect(spellsCard).toBeTruthy();
+      expect(spellsCard?.textContent).toContain("Fire Bolt");
+      expect(spellsCard?.textContent).toContain("Magic Missile");
+      expect(spellsCard?.textContent).toContain("Lv1");
+    });
+  });
+
+  describe("character summary card", () => {
+    it("includes HP in summary text", () => {
+      render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
+      expect(screen.getByText(/13 HP/)).toBeTruthy();
+    });
+
+    it("shows race bonuses applied", () => {
+      render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
+      expect(screen.getByText(/constitution \+2/)).toBeTruthy();
+    });
   });
 });

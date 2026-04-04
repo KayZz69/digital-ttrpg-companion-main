@@ -2,10 +2,28 @@ import { DnD5eCharacter, DnD5eAbilityScores } from "@/types/character";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Shield, Sparkles, Scroll, Backpack, BookOpen, GraduationCap } from "lucide-react";
+import {
+  User,
+  Shield,
+  Sparkles,
+  Scroll,
+  Swords,
+  BookOpen,
+  Heart,
+  CheckCircle2,
+  XCircle,
+  Backpack,
+} from "lucide-react";
 import { applyAbilityBonuses, ABILITY_KEYS } from "@/lib/characterCreationRules";
-import { getClassSpellcastingAbility, getRaceByName, isSpellcastingClass, getClassSavingThrowProficiencies } from "@/lib/dndCompendium";
-import { getRegistrySpellSelectionState } from "@/lib/rules/spells";
+import {
+  getClassHitDie,
+  getClassSavingThrowKeys,
+  getClassSpellcastingAbility,
+  getRaceByName,
+  isSpellcastingClass,
+} from "@/lib/dndCompendium";
+import { getAbilityModifier, getSpellSelectionState } from "@/lib/dndRules";
+import { validateAllSteps, type WizardStepKey } from "@/lib/wizardValidation";
 
 interface ReviewStepProps {
   character: Partial<DnD5eCharacter>;
@@ -30,6 +48,15 @@ const ABILITY_LABELS: Record<keyof DnD5eAbilityScores, string> = {
   charisma: "CHA",
 };
 
+const SAVE_LABELS: Record<string, string> = {
+  strength: "Strength",
+  dexterity: "Dexterity",
+  constitution: "Constitution",
+  intelligence: "Intelligence",
+  wisdom: "Wisdom",
+  charisma: "Charisma",
+};
+
 export const ReviewStep = ({ character }: ReviewStepProps) => {
   const getModifier = (score: number): string => {
     const mod = Math.floor((score - 10) / 2);
@@ -52,6 +79,32 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
         )
       : null;
 
+  const visibleSteps: WizardStepKey[] = [
+    "basic", "race", "class", "background", "abilities",
+    "skills", "saves",
+    ...(isSpellcastingClass(character.class || "") ? ["spells" as WizardStepKey] : []),
+    "equipment",
+  ];
+  const stepResults = validateAllSteps(character, visibleSteps);
+  const allValid = stepResults.every((r) => r.valid);
+
+  const constitution = effectiveAbilityScores.constitution || 10;
+  const conMod = getAbilityModifier(constitution);
+  const hitDie = getClassHitDie(character.class || "");
+  const maxHP = character.class ? Math.max(1, hitDie + conMod) : 0;
+
+  const savingThrowKeys = getClassSavingThrowKeys(character.class || "");
+
+  const proficientSkills = Object.entries(character.skills || {})
+    .filter(([, level]) => level === "proficient")
+    .map(([name]) => name);
+  const expertSkills = Object.entries(character.skills || {})
+    .filter(([, level]) => level === "expert")
+    .map(([name]) => name);
+
+  const cantrips = (character.preparedSpells || []).filter((s) => s.level === 0);
+  const leveledSpells = (character.preparedSpells || []).filter((s) => s.level > 0);
+
   return (
     <div className="space-y-6">
       <Card className="border-2 border-primary">
@@ -61,6 +114,46 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
             Review your character details before finalizing the creation
           </CardDescription>
         </CardHeader>
+      </Card>
+
+      {/* Validation Summary */}
+      <Card data-testid="validation-summary">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            {allValid ? (
+              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+            ) : (
+              <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            )}
+            <CardTitle className="text-lg">
+              {allValid ? "Ready to Create" : "Steps Need Attention"}
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {stepResults.map((result) => (
+              <Badge
+                key={result.key}
+                variant={result.valid ? "secondary" : "destructive"}
+                className="gap-1"
+                data-testid={`step-status-${result.key}`}
+              >
+                {result.valid ? (
+                  <CheckCircle2 className="h-3 w-3" />
+                ) : (
+                  <XCircle className="h-3 w-3" />
+                )}
+                {result.label}
+              </Badge>
+            ))}
+          </div>
+          {!allValid && (
+            <p className="text-sm text-destructive mt-3">
+              {stepResults.find((r) => !r.valid)?.error}
+            </p>
+          )}
+        </CardContent>
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -146,6 +239,90 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
         </Card>
       </div>
 
+      {/* Hit Points & Saving Throws */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card data-testid="hp-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Hit Points</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold">{maxHP}</span>
+              <span className="text-sm text-muted-foreground">HP at Level 1</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              d{hitDie} (max) {conMod >= 0 ? "+" : ""}{conMod} CON modifier
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="saves-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Saving Throws</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {savingThrowKeys.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {savingThrowKeys.map((key) => (
+                  <Badge key={key} variant="secondary" data-testid={`save-${key}`}>
+                    {SAVE_LABELS[key] || key}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No class selected</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Skills */}
+      {(proficientSkills.length > 0 || expertSkills.length > 0) && (
+        <Card data-testid="skills-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Skills</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {proficientSkills.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Proficient</p>
+                <div className="flex flex-wrap gap-2">
+                  {proficientSkills.map((skill) => (
+                    <Badge key={skill} variant="outline" data-testid={`skill-proficient-${skill}`}>
+                      {skill}
+                      {(character.backgroundSkills || []).includes(skill) && (
+                        <span className="ml-1 text-xs opacity-60">(bg)</span>
+                      )}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {expertSkills.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Expertise</p>
+                <div className="flex flex-wrap gap-2">
+                  {expertSkills.map((skill) => (
+                    <Badge key={skill} variant="default" data-testid={`skill-expert-${skill}`}>
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Race Traits and Languages */}
       {raceData && (raceData.traits.length > 0 || (raceData.languages && raceData.languages.length > 0)) && (
         <Card>
@@ -183,99 +360,12 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
         </Card>
       )}
 
-      {/* Skills & Proficiencies */}
-      {character.skills && Object.keys(character.skills).length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Skills & Proficiencies</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Background Skills */}
-            {character.backgroundSkills && character.backgroundSkills.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Background Skills</p>
-                <div className="flex flex-wrap gap-2">
-                  {character.backgroundSkills.map((skill) => (
-                    <Badge key={skill} variant="secondary">{skill}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Class Skill Choices */}
-            {character.class && (() => {
-              const backgroundSkills = new Set(character.backgroundSkills || []);
-              const classSkills = Object.entries(character.skills || {})
-                .filter(([name, level]) => !backgroundSkills.has(name) && level !== "none" && level !== "expert")
-                .map(([name]) => name);
-              return classSkills.length > 0 ? (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Class Skill Choices</p>
-                  <div className="flex flex-wrap gap-2">
-                    {classSkills.map((skill) => (
-                      <Badge key={skill} variant="outline">{skill}</Badge>
-                    ))}
-                  </div>
-                </div>
-              ) : null;
-            })()}
-            {/* Expertise */}
-            {(() => {
-              const expertSkills = Object.entries(character.skills || {})
-                .filter(([, level]) => level === "expert")
-                .map(([name]) => name);
-              return expertSkills.length > 0 ? (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Expertise</p>
-                  <div className="flex flex-wrap gap-2">
-                    {expertSkills.map((skill) => (
-                      <Badge key={skill} className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">{skill}</Badge>
-                    ))}
-                  </div>
-                </div>
-              ) : null;
-            })()}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Saving Throws */}
-      {character.class && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Saving Throws</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {ABILITY_KEYS.map((ability) => {
-                const savingThrows = character.savingThrows || getClassSavingThrowProficiencies(character.class!);
-                const isProficient = savingThrows[ability] === true;
-                return (
-                  <Badge
-                    key={ability}
-                    variant={isProficient ? "default" : "outline"}
-                    className={isProficient ? "" : "opacity-50"}
-                  >
-                    {ABILITY_LABELS[ability]}{isProficient ? " \u2713" : ""}
-                  </Badge>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Background Grants */}
+      {/* Background Details */}
       {character.background && (
-        <Card>
+        <Card data-testid="background-card">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
+              <Scroll className="h-5 w-5 text-primary" />
               <CardTitle className="text-lg">Background: {character.background}</CardTitle>
             </div>
           </CardHeader>
@@ -283,104 +373,119 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
             {character.backgroundSkills && character.backgroundSkills.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Skills</p>
-                <p className="text-sm">{character.backgroundSkills.join(", ")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {character.backgroundSkills.map((skill) => (
+                    <Badge key={skill} variant="outline">{skill}</Badge>
+                  ))}
+                </div>
               </div>
             )}
             {character.backgroundTools && character.backgroundTools.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Tool Proficiencies</p>
-                <p className="text-sm">{character.backgroundTools.join(", ")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {character.backgroundTools.map((tool) => (
+                    <Badge key={tool} variant="outline">{tool}</Badge>
+                  ))}
+                </div>
               </div>
             )}
             {character.backgroundLanguages && character.backgroundLanguages.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Languages</p>
-                <p className="text-sm">{character.backgroundLanguages.join(", ")}</p>
-              </div>
-            )}
-            {character.backgroundEquipment && character.backgroundEquipment.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Starting Equipment</p>
-                <p className="text-sm">{character.backgroundEquipment.join(", ")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {character.backgroundLanguages.map((lang) => (
+                    <Badge key={lang} variant="outline">{lang}</Badge>
+                  ))}
+                </div>
               </div>
             )}
             {character.backgroundFeat && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Feat</p>
-                <Badge>{character.backgroundFeat}</Badge>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Origin Feat</p>
+                <Badge variant="secondary">{character.backgroundFeat}</Badge>
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Spells */}
-      {character.class && isSpellcastingClass(character.class) && character.preparedSpells && character.preparedSpells.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Spells</CardTitle>
-            </div>
-            {spellSummary && (
-              <CardDescription>
-                {spellSummary.mode === "known" ? "Known" : "Prepared"} spellcaster ({spellcastingAbility ? spellcastingAbility.charAt(0).toUpperCase() + spellcastingAbility.slice(1) : ""})
-              </CardDescription>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Group spells by level */}
-            {(() => {
-              const grouped = (character.preparedSpells || []).reduce<Record<number, typeof character.preparedSpells>>((acc, spell) => {
-                const lvl = spell.level;
-                if (!acc[lvl]) acc[lvl] = [];
-                acc[lvl]!.push(spell);
-                return acc;
-              }, {});
-              return Object.entries(grouped)
-                .sort(([a], [b]) => Number(a) - Number(b))
-                .map(([level, spellList]) => (
-                  <div key={level}>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
-                      {Number(level) === 0 ? "Cantrips" : `Level ${level}`}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {spellList!.map((spell) => (
-                        <Badge key={spell.id} variant={Number(level) === 0 ? "secondary" : "outline"}>
-                          {spell.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ));
-            })()}
           </CardContent>
         </Card>
       )}
 
       {/* Equipment */}
       {character.inventory && character.inventory.length > 0 && (
-        <Card>
+        <Card data-testid="equipment-card">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Backpack className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Starting Equipment</CardTitle>
+              <CardTitle className="text-lg">Equipment</CardTitle>
             </div>
             <CardDescription>
-              {character.equipmentSelectionMode === "gold-buy" ? "Gold-buy selection" : "Class package"}
+              Source: {character.equipmentSelectionMode === "gold-buy" ? "Gold-buy selection" : "Class package"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-1">
+            <div className="grid gap-1">
               {character.inventory.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span>{item.name}{item.quantity > 1 ? ` (\u00d7${item.quantity})` : ""}</span>
-                  {item.weight > 0 && (
-                    <span className="text-muted-foreground">{(item.weight * item.quantity).toFixed(1)} lb</span>
+                <div
+                  key={item.id}
+                  className="flex justify-between items-center py-1 text-sm"
+                  data-testid={`equipment-item-${item.id}`}
+                >
+                  <span>{item.name}</span>
+                  {item.quantity > 1 && (
+                    <Badge variant="outline" className="text-xs">
+                      x{item.quantity}
+                    </Badge>
                   )}
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Spells */}
+      {spellSummary && isSpellcastingClass(character.class || "") && (
+        <Card data-testid="spells-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Swords className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Spellcasting</CardTitle>
+            </div>
+            <CardDescription>
+              {spellSummary.mode === "known" ? "Known" : "Prepared"} caster
+              {spellcastingAbility && ` (${ABILITY_LABELS[spellcastingAbility]})`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {cantrips.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Cantrips ({cantrips.length}
+                  {spellSummary.maxCantrips !== null ? `/${spellSummary.maxCantrips}` : ""})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {cantrips.map((spell) => (
+                    <Badge key={spell.id} variant="outline">{spell.name}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {leveledSpells.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Leveled Spells ({leveledSpells.length}
+                  {spellSummary.maxLeveledSpells !== null ? `/${spellSummary.maxLeveledSpells}` : ""})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {leveledSpells.map((spell) => (
+                    <Badge key={spell.id} variant="outline">
+                      {spell.name}
+                      <span className="ml-1 text-xs opacity-60">Lv{spell.level}</span>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -397,9 +502,22 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
           <p className="text-muted-foreground">
             <span className="font-bold text-foreground">{character.name}</span> is a{" "}
             <span className="font-semibold text-foreground">Level {character.level} {character.race} {character.class}</span>{" "}
-            ready to embark on epic adventures. Your character begins with balanced ability scores
-            and is prepared to face the challenges ahead.
+            ready to embark on epic adventures.
+            {maxHP > 0 && (
+              <> Starting with <span className="font-semibold text-foreground">{maxHP} HP</span>.</>
+            )}
           </p>
+          <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
+            {bonuses && (
+              <p>
+                Race bonuses applied:{" "}
+                {Object.entries(bonuses)
+                  .filter(([, value]) => (value || 0) > 0)
+                  .map(([ability, value]) => `${ability} +${value}`)
+                  .join(", ") || "None"}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

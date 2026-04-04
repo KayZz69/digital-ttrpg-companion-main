@@ -1,13 +1,13 @@
 # Digital TTRPG Companion — Active Sprint
 
 > Source: extracted from [ROADMAP.md](./ROADMAP.md) and [character-creation-implementation-backlog.old.md](./character-creation-implementation-backlog.old.md)
-> Last updated: 2026-04-03
+> Last updated: 2026-04-02
 
-## Current Sprint: CCR-013 through CCR-014 — Wizard Validation & Review Summary
+## Current Sprint: CCR-013 through CCR-014 — Wizard Validation Hardening & Review Step Rule Summary
 
 ### Tasks
-- [x] CCR-013 — Wizard validation hardening: inline error display on every step, Next button blocked by validation
-- [x] CCR-014 — Review step rule summary: structured sections for skills, background grants, saving throws, spells, equipment
+- [x] CCR-013 — Wizard validation hardening: extract `getStepError` into `src/lib/wizardValidation.ts`, delegate equipment validation to `validateEquipmentStep` (enforces package selection), expose `validateAllSteps` for per-step status
+- [x] CCR-014 — Review step rule summary: add validation status indicators, hit points card, saving throws card, skills/expertise card, background details card, equipment inventory list, spell list with names and levels
 
 ### Completed
 - [x] CCR-001 — Rule baseline decision (2024 PHB documented)
@@ -40,6 +40,11 @@
 - [x] Code review: flag smells, duplication, anti-patterns — no critical issues; pre-existing warnings only (shadcn fast-refresh, useEffect deps)
 - [x] Check for security issues (hardcoded secrets, unsafe inputs) — clean
 - [x] Check for unused imports, dead code, stale TODOs — clean (1 docstring TODO in data/README.md, intentional)
+### Maintenance (2026-04-02)
+- [x] Run all tests and report failures — 574 tests pass (50 new CCR-013-014 coverage), 1 pre-existing timeout in StartingEquipmentStep gold-buy render
+- [x] Code review: flag smells, duplication, anti-patterns — no critical issues; pre-existing warnings only (shadcn fast-refresh, useEffect deps, large components)
+- [x] Check for security issues (hardcoded secrets, unsafe inputs) — clean
+- [x] Check for unused imports, dead code, stale TODOs — clean (1 minor: CardDescription import in CombatTracker.tsx may be unused)
 - [x] Check localStorage key compatibility for soloquest_* keys — all references go through STORAGE_KEYS constant, no renames
 
 ### Last (2026-04-03)
