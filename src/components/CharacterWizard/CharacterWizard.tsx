@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, writeCharacters } from "@/lib/storage";
 import {
+  getAllCompendiumEquipment,
   getClassByName,
   getClassSavingThrowProficiencies,
   getClassSpellcastingAbility,
@@ -93,6 +94,25 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
   const steps = ALL_STEPS.filter((step) =>
     step.showWhen ? step.showWhen(character) : true
   );
+
+  const getCurrentEquipmentCostInGp = (): number => {
+    const inventory = character.inventory || [];
+    if (inventory.length === 0) return 0;
+    const compendiumItems = getAllCompendiumEquipment();
+    const compendiumById = new Map(compendiumItems.map((entry) => [entry.id, entry]));
+    const toGp = (quantity: number, unit: "cp" | "sp" | "gp" | "pp"): number => {
+      if (unit === "cp") return quantity / 100;
+      if (unit === "sp") return quantity / 10;
+      if (unit === "pp") return quantity * 10;
+      return quantity;
+    };
+    return inventory.reduce((sum, item) => {
+      if (!item.sourceItemId) return sum;
+      const source = compendiumById.get(item.sourceItemId);
+      if (!source || !source.source.cost) return sum;
+      return sum + toGp(source.source.cost.quantity, source.source.cost.unit) * item.quantity;
+    }, 0);
+  };
 
   useEffect(() => {
     if (currentStep > steps.length) {

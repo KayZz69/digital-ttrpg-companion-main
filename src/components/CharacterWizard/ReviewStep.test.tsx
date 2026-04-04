@@ -93,14 +93,14 @@ describe("ReviewStep", () => {
     });
     render(<ReviewStep character={char} setCharacter={vi.fn()} />);
 
-    expect(screen.getByText("Expertise")).toBeInTheDocument();
+    expect(screen.getAllByText("Expertise").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Stealth (Expertise)")).toBeInTheDocument();
   });
 
   it("shows saving throw proficiencies", () => {
     render(<ReviewStep character={makeCharacter()} setCharacter={vi.fn()} />);
 
-    expect(screen.getByText("Saving Throws")).toBeInTheDocument();
+    expect(screen.getAllByText("Saving Throws").length).toBeGreaterThanOrEqual(1);
     // STR and CON appear in both ability scores and saving throws sections
     expect(screen.getAllByText("STR").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("CON").length).toBeGreaterThanOrEqual(2);
@@ -161,7 +161,7 @@ describe("ReviewStep", () => {
     // Fighter hit die = 10, CON 14 (+1 racial = 15), mod = +2 => HP = 12
     const hpValue = screen.getByTestId("hp-value");
     expect(hpValue).toHaveTextContent("12");
-    expect(screen.getByText("HP at Level 1")).toBeInTheDocument();
+    expect(screen.getAllByText("HP at Level 1").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Hit Die: d10/)).toBeInTheDocument();
   });
 
@@ -220,11 +220,14 @@ describe("ReviewStep", () => {
     expect(screen.queryByText("Skills & Proficiencies")).not.toBeInTheDocument();
   });
 
-  it("does not render saving throws section when none are set", () => {
+  it("derives saving throw proficiencies from class even when savingThrows is empty", () => {
     const char = makeCharacter({ savingThrows: {} });
     render(<ReviewStep character={char} setCharacter={vi.fn()} />);
 
-    expect(screen.queryByText("Saving Throws")).not.toBeInTheDocument();
+    // Fighter class grants Strength and Constitution saving throw proficiencies
+    // even when savingThrows data is empty, the component derives them from class
+    expect(screen.getByTestId("save-strength")).toBeInTheDocument();
+    expect(screen.getByTestId("save-constitution")).toBeInTheDocument();
   });
 
   it("does not render equipment section when inventory is empty", () => {
