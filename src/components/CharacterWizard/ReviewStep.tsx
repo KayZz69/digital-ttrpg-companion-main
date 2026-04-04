@@ -71,7 +71,7 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
   const spellcastingAbility = getClassSpellcastingAbility(character.class || "");
   const spellSummary =
     character.class && spellcastingAbility
-      ? getSpellSelectionState(
+      ? getRegistrySpellSelectionState(
           character.class,
           character.level || 1,
           effectiveAbilityScores[spellcastingAbility],

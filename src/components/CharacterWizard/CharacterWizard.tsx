@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { DnD5eCharacter, Character } from "@/types/character";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, writeCharacters } from "@/lib/storage";
 import {
@@ -367,6 +368,18 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
             setCharacter={setCharacter}
           />
         </div>
+
+        {/* Inline validation feedback */}
+        {currentStepDefinition && getStepError(currentStepDefinition.key) && (
+          <div className="mt-4" data-testid="step-validation-error">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {getStepError(currentStepDefinition.key)}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         {/* Navigation */}
         <div className="flex justify-between mt-8">

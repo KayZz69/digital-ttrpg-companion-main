@@ -35,9 +35,19 @@
 ### Tonight
 - Sprint CCR-013–014 is complete. Next sprint: CCR-015–016 (end-to-end test coverage, documentation and QA checklist).
 
+### Maintenance (2026-04-03)
+- [x] Run all tests and report failures — 542 tests pass (525 baseline + 17 new CCR-013/014 coverage), 0 failures
+- [x] Code review: flag smells, duplication, anti-patterns — no critical issues; pre-existing warnings only (shadcn fast-refresh, useEffect deps)
+- [x] Check for security issues (hardcoded secrets, unsafe inputs) — clean
+- [x] Check for unused imports, dead code, stale TODOs — clean (1 docstring TODO in data/README.md, intentional)
 ### Maintenance (2026-04-02)
 - [x] Run all tests and report failures — 574 tests pass (50 new CCR-013-014 coverage), 1 pre-existing timeout in StartingEquipmentStep gold-buy render
 - [x] Code review: flag smells, duplication, anti-patterns — no critical issues; pre-existing warnings only (shadcn fast-refresh, useEffect deps, large components)
 - [x] Check for security issues (hardcoded secrets, unsafe inputs) — clean
 - [x] Check for unused imports, dead code, stale TODOs — clean (1 minor: CardDescription import in CombatTracker.tsx may be unused)
 - [x] Check localStorage key compatibility for soloquest_* keys — all references go through STORAGE_KEYS constant, no renames
+
+### Last (2026-04-03)
+- CCR-013: Added inline validation error Alert to CharacterWizard.tsx — shows destructive Alert below step content when getStepError() returns non-null. 6 new tests.
+- CCR-014: Rewrote ReviewStep.tsx with 5 structured sections: Skills & Proficiencies (background/class/expertise sources), Saving Throws, Background Grants (skills/tools/languages/equipment/feat), Spells (grouped by level), Equipment (inventory list with weights). Migrated from legacy getSpellSelectionState to registry-backed getRegistrySpellSelectionState. 11 new tests.
+- Build, lint, and all 542 tests pass.
