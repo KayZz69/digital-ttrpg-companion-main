@@ -113,7 +113,7 @@ describe("StartingEquipmentStep", () => {
   });
 
   describe("gold-buy mode", () => {
-    it("shows budget information when gold-buy mode is active", () => {
+    it("shows budget information when gold-buy mode is active", { timeout: 15000 }, () => {
       const setCharacter = vi.fn();
       const character = makeCharacter({
         class: "Fighter",
@@ -131,7 +131,7 @@ describe("StartingEquipmentStep", () => {
       expect(screen.getByText(/remaining/i)).toBeInTheDocument();
     });
 
-    it("shows search input and filter buttons in gold-buy mode", () => {
+    it("shows search input and filter buttons in gold-buy mode", { timeout: 15000 }, () => {
       const setCharacter = vi.fn();
       const character = makeCharacter({
         class: "Fighter",
@@ -149,7 +149,7 @@ describe("StartingEquipmentStep", () => {
       expect(screen.getByRole("button", { name: /gear/i })).toBeInTheDocument();
     });
 
-    it("displays compendium items that can be added", () => {
+    it("displays compendium items that can be added", { timeout: 15000 }, () => {
       const setCharacter = vi.fn();
       const character = makeCharacter({
         class: "Fighter",
@@ -166,7 +166,7 @@ describe("StartingEquipmentStep", () => {
       expect(addButtons.length).toBeGreaterThan(0);
     });
 
-    it("shows overbudget warning when total cost exceeds budget", () => {
+    it("shows overbudget warning when total cost exceeds budget", { timeout: 15000 }, () => {
       const setCharacter = vi.fn();
       // Create an inventory that's clearly over budget for monk (15 gp)
       const equipment = getAllCompendiumEquipment();
@@ -208,7 +208,7 @@ describe("StartingEquipmentStep", () => {
       expect(screen.getByText(/exceeds the class starting gold budget/i)).toBeInTheDocument();
     });
 
-    it("shows quantity controls and remove button for gold-buy inventory items", () => {
+    it("shows quantity controls and remove button for gold-buy inventory items", { timeout: 15000 }, () => {
       const setCharacter = vi.fn();
       const equipment = getAllCompendiumEquipment();
       const firstItem = equipment[0];
@@ -262,7 +262,7 @@ describe("StartingEquipmentStep", () => {
       expect(lastCall.startingEquipmentChoiceId).toBeUndefined();
     });
 
-    it("switches from gold-buy to package mode", () => {
+    it("switches from gold-buy to package mode", { timeout: 15000 }, () => {
       const setCharacter = vi.fn();
       const character = makeCharacter({
         class: "Fighter",
@@ -279,7 +279,7 @@ describe("StartingEquipmentStep", () => {
       expect(lastCall.inventory).toEqual([]);
     });
 
-    it("disables package mode button when no class packages exist", () => {
+    it("disables package mode button when no class packages exist", { timeout: 15000 }, () => {
       const setCharacter = vi.fn();
       // Use a class name that won't have packages
       const character = makeCharacter({

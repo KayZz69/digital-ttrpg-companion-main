@@ -20,10 +20,9 @@ import {
   toCharacterSpellSlots,
 } from "@/lib/rules/spells";
 import { reconcileClassChange } from "@/lib/rules/classChange";
-import {
-  applyAbilityBonuses,
-} from "@/lib/characterCreationRules";
-import { getStepValidationError, type WizardStepKey } from "@/lib/wizardValidation";
+import { applyAbilityBonuses } from "@/lib/characterCreationRules";
+import { getStepError as getStepValidationError } from "@/utils/wizardValidation";
+import type { WizardStepKey } from "@/utils/wizardValidation";
 import { BasicInfoStep } from "./BasicInfoStep";
 import { RaceSelectionStep } from "./RaceSelectionStep";
 import { ClassSelectionStep } from "./ClassSelectionStep";
@@ -194,16 +193,10 @@ export const CharacterWizard = ({ onBack }: CharacterWizardProps) => {
   const CurrentStepComponent = currentStepDefinition?.component;
 
   const getStepError = (stepKey: WizardStepKey): string | null => {
-    if (stepKey === "review") {
-      const keysToValidate = steps
-        .map((step) => step.key)
-        .filter((key) => key !== "review");
-      const firstError = keysToValidate
-        .map((key) => getStepValidationError(key, character))
-        .find(Boolean);
-      return firstError || null;
-    }
-    return getStepValidationError(stepKey, character);
+    return getStepValidationError(stepKey, character, {
+      equipmentCostInGp: getCurrentEquipmentCostInGp(),
+      visibleStepKeys: steps.map((step) => step.key),
+    });
   };
 
   const canProceed = () => {
