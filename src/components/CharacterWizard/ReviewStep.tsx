@@ -30,6 +30,15 @@ const ABILITY_LABELS: Record<keyof DnD5eAbilityScores, string> = {
   charisma: "CHA",
 };
 
+const SAVE_LABELS: Record<string, string> = {
+  strength: "Strength",
+  dexterity: "Dexterity",
+  constitution: "Constitution",
+  intelligence: "Intelligence",
+  wisdom: "Wisdom",
+  charisma: "Charisma",
+};
+
 export const ReviewStep = ({ character }: ReviewStepProps) => {
   const getModifier = (score: number): string => {
     const mod = Math.floor((score - 10) / 2);
@@ -44,13 +53,39 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
   const spellcastingAbility = getClassSpellcastingAbility(character.class || "");
   const spellSummary =
     character.class && spellcastingAbility
-      ? getSpellSelectionState(
+      ? getRegistrySpellSelectionState(
           character.class,
           character.level || 1,
           effectiveAbilityScores[spellcastingAbility],
           character.preparedSpells || []
         )
       : null;
+
+  const visibleSteps: WizardStepKey[] = [
+    "basic", "race", "class", "background", "abilities",
+    "skills", "saves",
+    ...(isSpellcastingClass(character.class || "") ? ["spells" as WizardStepKey] : []),
+    "equipment",
+  ];
+  const stepResults = validateAllSteps(character, visibleSteps);
+  const allValid = stepResults.every((r) => r.valid);
+
+  const constitution = effectiveAbilityScores.constitution || 10;
+  const conMod = getAbilityModifier(constitution);
+  const hitDie = getClassHitDie(character.class || "");
+  const maxHP = character.class ? Math.max(1, hitDie + conMod) : 0;
+
+  const savingThrowKeys = getClassSavingThrowKeys(character.class || "");
+
+  const proficientSkills = Object.entries(character.skills || {})
+    .filter(([, level]) => level === "proficient")
+    .map(([name]) => name);
+  const expertSkills = Object.entries(character.skills || {})
+    .filter(([, level]) => level === "expert")
+    .map(([name]) => name);
+
+  const cantrips = (character.preparedSpells || []).filter((s) => s.level === 0);
+  const leveledSpells = (character.preparedSpells || []).filter((s) => s.level > 0);
 
   return (
     <div className="space-y-6">
@@ -61,6 +96,46 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
             Review your character details before finalizing the creation
           </CardDescription>
         </CardHeader>
+      </Card>
+
+      {/* Validation Summary */}
+      <Card data-testid="validation-summary">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            {allValid ? (
+              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+            ) : (
+              <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            )}
+            <CardTitle className="text-lg">
+              {allValid ? "Ready to Create" : "Steps Need Attention"}
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {stepResults.map((result) => (
+              <Badge
+                key={result.key}
+                variant={result.valid ? "secondary" : "destructive"}
+                className="gap-1"
+                data-testid={`step-status-${result.key}`}
+              >
+                {result.valid ? (
+                  <CheckCircle2 className="h-3 w-3" />
+                ) : (
+                  <XCircle className="h-3 w-3" />
+                )}
+                {result.label}
+              </Badge>
+            ))}
+          </div>
+          {!allValid && (
+            <p className="text-sm text-destructive mt-3">
+              {stepResults.find((r) => !r.valid)?.error}
+            </p>
+          )}
+        </CardContent>
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -145,6 +220,90 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Hit Points & Saving Throws */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card data-testid="hp-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Hit Points</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold">{maxHP}</span>
+              <span className="text-sm text-muted-foreground">HP at Level 1</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              d{hitDie} (max) {conMod >= 0 ? "+" : ""}{conMod} CON modifier
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="saves-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Saving Throws</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {savingThrowKeys.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {savingThrowKeys.map((key) => (
+                  <Badge key={key} variant="secondary" data-testid={`save-${key}`}>
+                    {SAVE_LABELS[key] || key}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No class selected</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Skills */}
+      {(proficientSkills.length > 0 || expertSkills.length > 0) && (
+        <Card data-testid="skills-card">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Skills</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {proficientSkills.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Proficient</p>
+                <div className="flex flex-wrap gap-2">
+                  {proficientSkills.map((skill) => (
+                    <Badge key={skill} variant="outline" data-testid={`skill-proficient-${skill}`}>
+                      {skill}
+                      {(character.backgroundSkills || []).includes(skill) && (
+                        <span className="ml-1 text-xs opacity-60">(bg)</span>
+                      )}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {expertSkills.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Expertise</p>
+                <div className="flex flex-wrap gap-2">
+                  {expertSkills.map((skill) => (
+                    <Badge key={skill} variant="default" data-testid={`skill-expert-${skill}`}>
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Race Traits and Languages */}
       {raceData && (raceData.traits.length > 0 || (raceData.languages && raceData.languages.length > 0)) && (
@@ -418,23 +577,12 @@ export const ReviewStep = ({ character }: ReviewStepProps) => {
           <p className="text-muted-foreground">
             <span className="font-bold text-foreground">{character.name}</span> is a{" "}
             <span className="font-semibold text-foreground">Level {character.level} {character.race} {character.class}</span>{" "}
-            ready to embark on epic adventures. Your character begins with balanced ability scores
-            and is prepared to face the challenges ahead.
+            ready to embark on epic adventures.
+            {maxHP > 0 && (
+              <> Starting with <span className="font-semibold text-foreground">{maxHP} HP</span>.</>
+            )}
           </p>
           <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
-            {spellSummary && (
-              <p>
-                Spellcasting: {spellSummary.mode === "known" ? "Known" : "Prepared"} | Cantrips{" "}
-                {spellSummary.currentCantrips}
-                {spellSummary.maxCantrips !== null ? `/${spellSummary.maxCantrips}` : ""} | Leveled{" "}
-                {spellSummary.currentLeveledSpells}
-                {spellSummary.maxLeveledSpells !== null ? `/${spellSummary.maxLeveledSpells}` : ""}
-              </p>
-            )}
-            <p>
-              Equipment source:{" "}
-              {character.equipmentSelectionMode === "gold-buy" ? "Gold-buy selection" : "Class package"}
-            </p>
             {bonuses && (
               <p>
                 Race bonuses applied:{" "}
