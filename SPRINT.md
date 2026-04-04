@@ -35,14 +35,15 @@
 ## Nightly Handoff (Bulhkin)
 <!-- Updated by agents at end of each session -->
 ### Tonight
-- Phase 1 (Character Creation Rules Compliance) is complete. Next sprint: Phase 2 tasks from ROADMAP.md — character sheet display improvements, edit flow refinement, leveling/progression integration.
+- Begin Phase 2: Character sheet display improvements — start with extracting character sheet sections into focused components
 
-### Maintenance (2026-04-04)
-- [x] Run all tests and report failures — 692 tests pass (27 test files, +98 new from CCR-015/016), 0 failures
+### Last Run
+- 2026-04-05: Fixed 22 test failures from missing imports in ReviewStep.tsx and CharacterWizard.tsx (pre-existing from CCR-014 implementation). Added missing imports for isSpellcastingClass, getClassSavingThrowKeys, getRegistrySpellSelectionState, validateAllSteps, WizardStepKey, getAbilityModifier, BookOpen. Defined getCurrentEquipmentCostInGp function. Updated 4 ReviewStep tests for new validation checklist overlap. All 725 tests pass, 0 errors, build clean.
+
+### Maintenance (2026-04-05)
+- [x] Run all tests and report failures — 725 tests pass (29 test files), 0 failures (fixed 22 pre-existing failures)
 - [x] Run lint — 0 errors, 13 pre-existing warnings (shadcn fast-refresh, useEffect deps)
-- [x] Run build — succeeds (5.37s)
-- [x] Code review: flag smells, duplication, anti-patterns — same 3 oversized page components (CharacterView 1007 lines, CombatTracker 893 lines, CombatParticipant 898 lines), duplicated character-loading pattern across 4 pages. No new issues introduced.
-- [x] Check for security issues (hardcoded secrets, unsafe inputs) — clean; one safe dangerouslySetInnerHTML in chart.tsx (internal CSS vars only)
+- [x] Run build — succeeds (4.64s)
+- [x] Code review: flag smells, duplication, anti-patterns — same 3 oversized page components. Fixed pre-existing missing import bugs in ReviewStep.tsx and CharacterWizard.tsx (undefined function references)
+- [x] Check for security issues — clean; one safe dangerouslySetInnerHTML in chart.tsx
 - [x] Check for unused imports, dead code, stale TODOs — clean
-- [x] Check localStorage key compatibility for soloquest_* keys — all references go through STORAGE_KEYS constant, no renames
-- [x] Fix flaky StartingEquipmentStep gold-buy timeout tests — bumped timeout to 15s for 7 gold-buy rendering tests

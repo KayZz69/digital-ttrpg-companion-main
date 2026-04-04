@@ -2,10 +2,12 @@ import { DnD5eCharacter, DnD5eAbilityScores } from "@/types/character";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Shield, Sparkles, Scroll, Swords, Heart, CheckCircle2, XCircle, Backpack } from "lucide-react";
+import { User, Shield, Sparkles, Scroll, Swords, Heart, CheckCircle2, XCircle, Backpack, BookOpen } from "lucide-react";
 import { applyAbilityBonuses, ABILITY_KEYS } from "@/lib/characterCreationRules";
-import { getClassSpellcastingAbility, getRaceByName, getClassHitDie } from "@/lib/dndCompendium";
-import { getSpellSelectionState, getLevelOneHitPoints } from "@/lib/dndRules";
+import { getClassSpellcastingAbility, getRaceByName, getClassHitDie, isSpellcastingClass, getClassSavingThrowKeys } from "@/lib/dndCompendium";
+import { getAbilityModifier, getLevelOneHitPoints } from "@/lib/dndRules";
+import { getRegistrySpellSelectionState } from "@/lib/rules/spells";
+import { validateAllSteps, WizardStepKey } from "@/lib/wizardValidation";
 
 interface ReviewStepProps {
   character: Partial<DnD5eCharacter>;
