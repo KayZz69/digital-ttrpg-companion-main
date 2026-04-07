@@ -1,41 +1,47 @@
 # Digital TTRPG Companion — Active Sprint
 
 > Source: extracted from [ROADMAP.md](./ROADMAP.md) and [character-creation-implementation-backlog.old.md](./character-creation-implementation-backlog.old.md)
-> Last updated: 2026-04-04
+> Last updated: 2026-04-07
 
-## Current Sprint: CCR-015 through CCR-016 — End-to-End Test Coverage, Documentation and QA Checklist
+## Current Sprint: CCR-017 through CCR-023 — Character Sheet & Management Polish
 
 ### Tasks
-- [x] CCR-015 — End-to-end test coverage: wizard step component tests for all 9 steps, integration tests for full character creation flows (Fighter, Wizard, Cleric), class change reconciliation E2E, edge cases
-- [x] CCR-016 — Documentation and QA checklist: `docs/CHARACTER_CREATION_QA.md` with flow documentation, 70+ item QA checklist, test coverage inventory, known issues
+- [ ] CCR-017 — Character sheet component extraction: break monolithic character sheet page into focused section components (StatsBlock, InventoryPanel, SpellList, EffectsBar, HeaderInfo) with proper props/types
+- [ ] CCR-018 — Ability scores & modifiers display: wire ability scores, modifiers, saving throws, and proficiency bonus into StatsBlock using rules engine utilities; show computed values (passive Perception, etc.)
+- [ ] CCR-019 — Inventory & equipment display: render starting equipment from creation data, show armor class computation, weight/encumbrance summary, and equipped vs. carried state
+- [ ] CCR-020 — Spell management on sheet: display prepared/known spells by level, spell slot tracking, casting integration with class spell list from registry; cantrips separated
+- [ ] CCR-021 — Character edit flow: enable inline editing of character fields post-creation (name, HP, notes) with validation; prevent edits to locked fields (class, race) without full re-creation
+- [ ] CCR-022 — Level-up progression: implement level 2-3 progression flow using rules engine — HP increase (hit die roll or average), new class features, spell slot updates, ASI/feat stub at level 4
+- [ ] CCR-023 — Character sheet test coverage: component tests for each extracted section, integration test for edit flow, snapshot tests for sheet layout at levels 1-3
 
-### Completed
-- [x] CCR-001 — Rule baseline decision (2024 PHB documented)
-- [x] CCR-002 — Creation rules schema and registry
-- [x] CCR-003 — Registry-driven spell logic
-- [x] CCR-004 — Character data model update
-- [x] CCR-005 — Legacy character migration layer
-- [x] CCR-006 — Spell selection full rule enforcement
-- [x] CCR-007 — Class change reconciliation
-- [x] CCR-008 — Equipment rules data
-- [x] CCR-009 — Starting equipment step rewrite
-- [x] CCR-010 — Background step and data integration
-- [x] CCR-011 — Race and origin application
-- [x] CCR-012 — Skills step rule correction
-- [x] CCR-013 — Wizard validation hardening
-- [x] CCR-014 — Review step rule summary
+### Completed Sprints
+
+#### Phase 1: Character Creation Rules Compliance
 - [x] CCR-015 — End-to-end test coverage
 - [x] CCR-016 — Documentation and QA checklist
-
-## Next Sprint Preview
-- Phase 1 complete. Next: Phase 2 (Character Sheet & Management Polish) from ROADMAP.md
+- [x] CCR-014 — Review step rule summary
+- [x] CCR-013 — Wizard validation hardening
+- [x] CCR-012 — Skills step rule correction
+- [x] CCR-011 — Race and origin application
+- [x] CCR-010 — Background step and data integration
+- [x] CCR-009 — Starting equipment step rewrite
+- [x] CCR-008 — Equipment rules data
+- [x] CCR-007 — Class change reconciliation
+- [x] CCR-006 — Spell selection full rule enforcement
+- [x] CCR-005 — Legacy character migration layer
+- [x] CCR-004 — Character data model update
+- [x] CCR-003 — Registry-driven spell logic
+- [x] CCR-002 — Creation rules schema and registry
+- [x] CCR-001 — Rule baseline decision (2024 PHB documented)
 
 > End goal: Phase 4 (session tools / AI GM state handoff) is the target — character creation compliance feeds the structured state bundle that AI GMs consume at session start.
 
 ## Nightly Handoff (Bulhkin)
 <!-- Updated by agents at end of each session -->
 ### Tonight
-- Begin Phase 2: Character sheet display improvements — start with extracting character sheet sections into focused components
+- CCR-017: Extract character sheet into focused section components (StatsBlock, InventoryPanel, SpellList, EffectsBar, HeaderInfo)
+- CCR-018: Wire ability scores, modifiers, and saving throws into StatsBlock
+- Audit existing character sheet page to identify all extraction points and shared state
 
 ### Last Run
 - 2026-04-05: Fixed 22 test failures from missing imports in ReviewStep.tsx and CharacterWizard.tsx (pre-existing from CCR-014 implementation). Added missing imports for isSpellcastingClass, getClassSavingThrowKeys, getRegistrySpellSelectionState, validateAllSteps, WizardStepKey, getAbilityModifier, BookOpen. Defined getCurrentEquipmentCostInGp function. Updated 4 ReviewStep tests for new validation checklist overlap. All 725 tests pass, 0 errors, build clean.
