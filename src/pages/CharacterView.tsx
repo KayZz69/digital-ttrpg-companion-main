@@ -830,6 +830,7 @@ export const CharacterView = () => {
         <InventoryPanel
           inventory={dndCharacter.inventory || []}
           strength={dndCharacter.abilityScores.strength}
+          abilityScores={dndCharacter.abilityScores}
           onUpdateInventory={updateInventory}
         />
 

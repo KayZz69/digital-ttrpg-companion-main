@@ -310,6 +310,19 @@ export const SpellsManager = ({
     a.level === b.level ? a.name.localeCompare(b.name) : a.level - b.level
   );
 
+  /** Group spells by level for sectioned display. */
+  const spellsByLevel = sortedPreparedSpells.reduce<Map<number, PreparedSpell[]>>((acc, spell) => {
+    const group = acc.get(spell.level) || [];
+    group.push(spell);
+    acc.set(spell.level, group);
+    return acc;
+  }, new Map());
+
+  const cantrips = spellsByLevel.get(0) || [];
+  const leveledGroups = Array.from(spellsByLevel.entries())
+    .filter(([lvl]) => lvl > 0)
+    .sort(([a], [b]) => a - b);
+
   return (
     <Card>
       <CardHeader>
@@ -631,79 +644,141 @@ export const SpellsManager = ({
               No {spellSelectionState.mode === "known" ? "known" : "prepared"} spells yet. Add from compendium or create a custom one.
             </p>
           ) : (
-            <div className="space-y-3">
-              {sortedPreparedSpells.map((spell) => (
-                <div key={spell.id} className="space-y-2 rounded-lg bg-muted p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h5 className="font-semibold">{spell.name}</h5>
-                        {spell.concentration && (
-                          <Badge variant="outline" className="border-amber-500/50 text-amber-600 text-xs">
-                            ⊛ Conc.
-                          </Badge>
-                        )}
-                        {spell.ritual && canCastAsRitual(spell, characterClass || "") && (
-                          <Badge variant="outline" className="border-blue-500/50 text-blue-600 text-xs">
-                            📖 Ritual
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {spellLevelDisplay(spell.level)}
-                        {spell.school && ` | ${spell.school}`}
-                        {spell.sourceSpellId && " | Compendium"}
-                      </p>
-                      {spell.concentration && spell.level > 0 && (
+            <div className="space-y-6">
+              {/* Cantrips section */}
+              {cantrips.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center gap-2">
+                    <h5 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Cantrips
+                    </h5>
+                    <Badge variant="secondary" className="text-xs">{cantrips.length}</Badge>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {cantrips.map((spell) => (
+                      <div key={spell.id} className="flex items-center justify-between rounded-lg bg-muted p-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-medium text-sm">{spell.name}</span>
+                            {spell.school && (
+                              <span className="text-xs text-muted-foreground">{spell.school}</span>
+                            )}
+                          </div>
+                          {spell.castingTime && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {spell.castingTime} | {spell.range}
+                            </p>
+                          )}
+                        </div>
                         <Button
                           variant="ghost"
-                          size="sm"
-                          className="mt-1 h-6 px-2 text-xs"
-                          onClick={() => handleConcentrate(spell.name)}
-                          disabled={activeConcentrationSpell === spell.name}
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => removeSpell(spell.id)}
                         >
-                          {activeConcentrationSpell === spell.name ? "Concentrating" : "Concentrate"}
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => removeSpell(spell.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      </div>
+                    ))}
                   </div>
-                  {(spell.castingTime || spell.range || spell.components || spell.duration) && (
-                    <div className="space-y-1 border-t pt-2 text-sm">
-                      {spell.castingTime && (
-                        <p>
-                          <span className="text-muted-foreground">Casting Time:</span>{" "}
-                          {spell.castingTime}
-                        </p>
-                      )}
-                      {spell.range && (
-                        <p>
-                          <span className="text-muted-foreground">Range:</span> {spell.range}
-                        </p>
-                      )}
-                      {spell.components && (
-                        <p>
-                          <span className="text-muted-foreground">Components:</span>{" "}
-                          {spell.components}
-                        </p>
-                      )}
-                      {spell.duration && (
-                        <p>
-                          <span className="text-muted-foreground">Duration:</span> {spell.duration}
-                        </p>
+                </div>
+              )}
+
+              {/* Leveled spells grouped by level */}
+              {leveledGroups.map(([lvl, spells]) => {
+                const slotKey = `level${lvl}` as keyof SpellSlots;
+                const slot = spellSlots[slotKey];
+                return (
+                  <div key={lvl}>
+                    <div className="mb-2 flex items-center gap-2">
+                      <h5 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                        Level {lvl}
+                      </h5>
+                      <Badge variant="secondary" className="text-xs">
+                        {spells.length} {spells.length === 1 ? "spell" : "spells"}
+                      </Badge>
+                      {slot && slot.max > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          {slot.current}/{slot.max} slots
+                        </Badge>
                       )}
                     </div>
-                  )}
-                  {spell.description && <p className="border-t pt-2 text-sm">{spell.description}</p>}
-                </div>
-              ))}
+                    <div className="space-y-3">
+                      {spells.map((spell) => (
+                        <div key={spell.id} className="space-y-2 rounded-lg bg-muted p-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold">{spell.name}</span>
+                                {spell.concentration && (
+                                  <Badge variant="outline" className="border-amber-500/50 text-amber-600 text-xs">
+                                    ⊛ Conc.
+                                  </Badge>
+                                )}
+                                {spell.ritual && canCastAsRitual(spell, characterClass || "") && (
+                                  <Badge variant="outline" className="border-blue-500/50 text-blue-600 text-xs">
+                                    Ritual
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {spell.school}
+                                {spell.sourceSpellId && " | Compendium"}
+                              </p>
+                              {spell.concentration && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="mt-1 h-6 px-2 text-xs"
+                                  onClick={() => handleConcentrate(spell.name)}
+                                  disabled={activeConcentrationSpell === spell.name}
+                                >
+                                  {activeConcentrationSpell === spell.name ? "Concentrating" : "Concentrate"}
+                                </Button>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => removeSpell(spell.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          {(spell.castingTime || spell.range || spell.components || spell.duration) && (
+                            <div className="space-y-1 border-t pt-2 text-sm">
+                              {spell.castingTime && (
+                                <p>
+                                  <span className="text-muted-foreground">Casting Time:</span>{" "}
+                                  {spell.castingTime}
+                                </p>
+                              )}
+                              {spell.range && (
+                                <p>
+                                  <span className="text-muted-foreground">Range:</span> {spell.range}
+                                </p>
+                              )}
+                              {spell.components && (
+                                <p>
+                                  <span className="text-muted-foreground">Components:</span>{" "}
+                                  {spell.components}
+                                </p>
+                              )}
+                              {spell.duration && (
+                                <p>
+                                  <span className="text-muted-foreground">Duration:</span> {spell.duration}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {spell.description && <p className="border-t pt-2 text-sm">{spell.description}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
