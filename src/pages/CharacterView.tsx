@@ -6,20 +6,17 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Character, DnD5eCharacter, InventoryItem, SkillProficiency, SavingThrowProficiency, SpellSlots, PreparedSpell, DeathSaves, Condition } from "@/types/character";
+import { Character, DnD5eCharacter, InventoryItem, SkillProficiency, SavingThrowProficiency, SpellSlots, PreparedSpell, Condition } from "@/types/character";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { InventoryManager } from "@/components/InventoryManager";
 import { SkillsManager } from "@/components/SkillsManager";
-import { SavingThrowsManager } from "@/components/SavingThrowsManager";
-import { SpellsManager } from "@/components/SpellsManager";
 import { LevelUpWizard } from "@/components/LevelUpWizard/LevelUpWizard";
-import { ArrowLeft, Edit, Dices, Heart, Skull, Plus, Minus, Moon, Sun, X, Circle, CheckCircle2, XCircle, BookOpen, Swords, TrendingUp, Star } from "lucide-react";
+import { HeaderInfo, StatsBlock, EffectsBar, SpellList, InventoryPanel } from "@/components/CharacterSheet";
+import { Heart, Skull, Plus, Minus, Moon, Sun, Circle, CheckCircle2, XCircle, TrendingUp, Star } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { readCharacters, writeCharacters } from "@/lib/storage";
 import { getClassHitDie } from "@/lib/dndCompendium";
@@ -262,15 +259,6 @@ export const CharacterView = () => {
     saveCharacter(updatedCharacter);
   };
 
-  const getCarryingCapacity = (strength: number): number => {
-    return strength * 15; // D&D 5e rule: Strength * 15 lbs
-  };
-
-  const getModifier = (score: number): string => {
-    const mod = Math.floor((score - 10) / 2);
-    return mod >= 0 ? `+${mod}` : `${mod}`;
-  };
-
   const updateDeathSaves = (successes: number, failures: number) => {
     if (!character) return;
     const dndChar = character.data as DnD5eCharacter;
@@ -490,64 +478,17 @@ export const CharacterView = () => {
         />
       )}
       <div className="container max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={() => navigate("/characters")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Characters
-          </Button>
-          <div className="flex flex-wrap gap-2">
-            {readyToLevelUp && (
-              <Button
-                onClick={() => setShowLevelUpWizard(true)}
-                className="bg-yellow-500 hover:bg-yellow-600 text-yellow-950 font-semibold"
-              >
-                <Star className="w-4 h-4 mr-2" />
-                Level Up!
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => navigate(`/character/${id}/combat`)}>
-              <Swords className="w-4 h-4 mr-2" />
-              Combat
-            </Button>
-            <Button variant="outline" onClick={() => navigate(`/compendium?characterId=${id}`)}>
-              <BookOpen className="w-4 h-4 mr-2" />
-              Compendium
-            </Button>
-            <Button variant="outline" onClick={() => navigate(`/character/${id}/journal`)}>
-              <BookOpen className="w-4 h-4 mr-2" />
-              Journal
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/dice")}>
-              <Dices className="w-4 h-4 mr-2" />
-              Dice Roller
-            </Button>
-            <Button onClick={() => navigate(`/character/${id}/edit`)}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Character
-            </Button>
-          </div>
-        </div>
-
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-3xl mb-2 font-display">{dndCharacter.name}</CardTitle>
-                <CardDescription className="text-lg">
-                  {dndCharacter.race} {dndCharacter.class} | Level {dndCharacter.level}
-                </CardDescription>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <span className="text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
-                  D&D 5e
-                </span>
-                <span className="text-xs font-medium px-3 py-1 rounded-full bg-muted text-muted-foreground">
-                  Proficiency Bonus: +{profBonus}
-                </span>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
+        <HeaderInfo
+          characterId={id!}
+          name={dndCharacter.name}
+          race={dndCharacter.race}
+          characterClass={dndCharacter.class}
+          level={dndCharacter.level}
+          proficiencyBonus={profBonus}
+          readyToLevelUp={readyToLevelUp}
+          onNavigate={navigate}
+          onLevelUp={() => setShowLevelUpWizard(true)}
+        />
 
         {/* XP & Leveling */}
         <Card className="mb-6">
@@ -839,74 +780,24 @@ export const CharacterView = () => {
         </Card>
 
         {/* Conditions */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Conditions</CardTitle>
-            <CardDescription>Track active status effects</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {(["Blinded", "Charmed", "Deafened", "Frightened", "Grappled", "Incapacitated",
-                "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained",
-                "Stunned", "Unconscious"] as Condition[]).map((condition) => {
-                  const isActive = dndCharacter.conditions?.includes(condition);
-                  return (
-                    <Badge
-                      key={condition}
-                      variant={isActive ? "default" : "outline"}
-                      className="cursor-pointer hover:scale-105 transition-transform"
-                      onClick={() => toggleCondition(condition)}
-                    >
-                      {condition}
-                      {isActive && <X className="w-3 h-3 ml-1" />}
-                    </Badge>
-                  );
-                })}
-            </div>
-            {(dndCharacter.exhaustionLevel || 0) > 0 && (
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Exhaustion Level</span>
-                  <Badge variant="destructive">{dndCharacter.exhaustionLevel}</Badge>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <EffectsBar
+          conditions={dndCharacter.conditions || []}
+          exhaustionLevel={dndCharacter.exhaustionLevel || 0}
+          onToggleCondition={toggleCondition}
+        />
 
         <hr className="fantasy-divider" />
 
         {/* Ability Scores & Saving Throws */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ability Scores</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(dndCharacter.abilityScores).map(([ability, score]) => (
-                  <div key={ability} className="text-center p-4 rounded-lg bg-muted">
-                    <div className="text-sm font-medium text-muted-foreground capitalize mb-1">
-                      {ability}
-                    </div>
-                    <div className="text-3xl font-bold">{score}</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {getModifier(score)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <SavingThrowsManager
-            abilityScores={dndCharacter.abilityScores}
-            level={dndCharacter.level}
-            savingThrows={dndCharacter.savingThrows || {}}
-            onUpdateSavingThrows={updateSavingThrows}
-            readOnly={true}
-          />
-        </div>
+        <StatsBlock
+          abilityScores={dndCharacter.abilityScores}
+          level={dndCharacter.level}
+          savingThrows={dndCharacter.savingThrows || {}}
+          skills={dndCharacter.skills}
+          spellcastingAbility={dndCharacter.spellcastingAbility}
+          onUpdateSavingThrows={updateSavingThrows}
+          readOnly={true}
+        />
 
         {/* Skills */}
         <div className="mb-6">
@@ -922,37 +813,24 @@ export const CharacterView = () => {
         <hr className="fantasy-divider" />
 
         {/* Spells (if applicable) */}
-        {dndCharacter.spellcastingAbility && (
-          <div className="mb-6">
-            <SpellsManager
-              spellSlots={dndCharacter.spellSlots || {
-                level1: { current: 0, max: 0 },
-                level2: { current: 0, max: 0 },
-                level3: { current: 0, max: 0 },
-                level4: { current: 0, max: 0 },
-                level5: { current: 0, max: 0 },
-                level6: { current: 0, max: 0 },
-                level7: { current: 0, max: 0 },
-                level8: { current: 0, max: 0 },
-                level9: { current: 0, max: 0 },
-              }}
-              preparedSpells={dndCharacter.preparedSpells || []}
-              characterClass={dndCharacter.class}
-              spellcastingAbility={dndCharacter.spellcastingAbility}
-              abilityScores={dndCharacter.abilityScores}
-              level={dndCharacter.level}
-              onUpdateSpellSlots={updateSpellSlots}
-              onUpdatePreparedSpells={updatePreparedSpells}
-              activeConcentrationSpell={activeConcentrationSpell}
-              onConcentrationChange={setActiveConcentrationSpell}
-            />
-          </div>
-        )}
+        <SpellList
+          spellcastingAbility={dndCharacter.spellcastingAbility}
+          spellSlots={dndCharacter.spellSlots}
+          preparedSpells={dndCharacter.preparedSpells || []}
+          characterClass={dndCharacter.class}
+          abilityScores={dndCharacter.abilityScores}
+          level={dndCharacter.level}
+          activeConcentrationSpell={activeConcentrationSpell}
+          onUpdateSpellSlots={updateSpellSlots}
+          onUpdatePreparedSpells={updatePreparedSpells}
+          onConcentrationChange={setActiveConcentrationSpell}
+        />
 
         {/* Inventory Management */}
-        <InventoryManager
+        <InventoryPanel
           inventory={dndCharacter.inventory || []}
-          carryingCapacity={getCarryingCapacity(dndCharacter.abilityScores.strength)}
+          strength={dndCharacter.abilityScores.strength}
+          abilityScores={dndCharacter.abilityScores}
           onUpdateInventory={updateInventory}
         />
 
