@@ -7,9 +7,9 @@ import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Character, DnD5eCharacter } from "@/types/character";
-import { getClassByName } from "@/lib/dndCompendium";
-import { getProficiencyBonus, getAbilityModifier } from "@/lib/dndRules";
+import { Character, DnD5eCharacter, SpellSlots } from "@/types/character";
+import { getClassByName, isSpellcastingClass } from "@/lib/dndCompendium";
+import { getProficiencyBonus, getAbilityModifier, getDefaultSpellSlots } from "@/lib/dndRules";
 import {
   getNewFeaturesAtLevel,
   isASILevel,
@@ -21,15 +21,16 @@ import {
 } from "@/utils/progressionUtils";
 import { HPGainStep } from "./HPGainStep";
 import { ASIStep } from "./ASIStep";
-import { Sparkles, TrendingUp, Shield } from "lucide-react";
+import { Sparkles, TrendingUp, Shield, BookOpen } from "lucide-react";
 
 type WizardStep = "overview" | "hp" | "asi" | "confirm";
 
-interface LevelUpResult {
+export interface LevelUpResult {
   newLevel: number;
   hpGained: number;
   newMaxHP: number;
   newAbilityScores: DnD5eCharacter["abilityScores"];
+  newSpellSlots?: SpellSlots;
 }
 
 interface LevelUpWizardProps {
@@ -50,6 +51,30 @@ export function LevelUpWizard({ open, character, onClose, onConfirm }: LevelUpWi
 
   const newFeatures = useMemo(() => getNewFeaturesAtLevel(features, newLevel), [features, newLevel]);
   const hasASI = useMemo(() => isASILevel(features, newLevel), [features, newLevel]);
+
+  // Spell slot changes
+  const isCaster = isSpellcastingClass(dnd.class);
+  const newSpellSlots = useMemo(
+    () => (isCaster ? getDefaultSpellSlots(dnd.class, newLevel) : undefined),
+    [dnd.class, newLevel, isCaster]
+  );
+  const oldSpellSlots = useMemo(
+    () => (isCaster ? getDefaultSpellSlots(dnd.class, dnd.level) : undefined),
+    [dnd.class, dnd.level, isCaster]
+  );
+  const spellSlotChanges = useMemo(() => {
+    if (!newSpellSlots || !oldSpellSlots) return [];
+    const changes: Array<{ level: number; oldMax: number; newMax: number }> = [];
+    for (let i = 1; i <= 9; i++) {
+      const key = `level${i}` as keyof SpellSlots;
+      const oldMax = oldSpellSlots[key].max;
+      const newMax = newSpellSlots[key].max;
+      if (newMax !== oldMax) {
+        changes.push({ level: i, oldMax, newMax });
+      }
+    }
+    return changes;
+  }, [newSpellSlots, oldSpellSlots]);
 
   // Filter out ASI from "new features" display since it has its own step
   const displayFeatures = newFeatures.filter((f) => f.name !== "Ability Score Improvement");
@@ -95,6 +120,7 @@ export function LevelUpWizard({ open, character, onClose, onConfirm }: LevelUpWi
       hpGained: finalHP,
       newMaxHP: dnd.hitPoints.max + finalHP,
       newAbilityScores,
+      newSpellSlots,
     });
   };
 
@@ -175,7 +201,23 @@ export function LevelUpWizard({ open, character, onClose, onConfirm }: LevelUpWi
               </div>
             )}
 
-            {displayFeatures.length === 0 && !hasASI && !profBonusIncreased && (
+            {spellSlotChanges.length > 0 && (
+              <div className="p-3 rounded-lg bg-muted/60">
+                <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  Spell Slot Updates
+                </p>
+                <div className="space-y-1">
+                  {spellSlotChanges.map((c) => (
+                    <p key={c.level} className="text-xs text-muted-foreground">
+                      Level {c.level}: {c.oldMax} {"->"} {c.newMax} slots
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {displayFeatures.length === 0 && !hasASI && !profBonusIncreased && spellSlotChanges.length === 0 && (
               <p className="text-sm text-muted-foreground italic">
                 No new class features at this level.
               </p>
@@ -229,6 +271,12 @@ export function LevelUpWizard({ open, character, onClose, onConfirm }: LevelUpWi
                       ? `+2 ${asiChoice.ability}`
                       : `+1 ${asiChoice.ability1}, +1 ${asiChoice.ability2}`
                   }
+                />
+              )}
+              {spellSlotChanges.length > 0 && (
+                <SummaryRow
+                  label="Spell Slots"
+                  value={spellSlotChanges.map((c) => `Lv${c.level}: ${c.oldMax}->${c.newMax}`).join(", ")}
                 />
               )}
               {displayFeatures.length > 0 && (
