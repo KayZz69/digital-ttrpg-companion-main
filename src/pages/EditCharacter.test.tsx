@@ -79,8 +79,11 @@ describe("EditCharacter", () => {
     const nameInput = screen.getByLabelText(/character name/i) as HTMLInputElement;
     expect(nameInput.value).toBe("Thorin");
 
-    const maxHPInput = screen.getByLabelText(/max hit points/i) as HTMLInputElement;
+    const maxHPInput = screen.getByLabelText(/^max$/i) as HTMLInputElement;
     expect(maxHPInput.value).toBe("30");
+
+    const currentHPInput = screen.getByLabelText(/^current$/i) as HTMLInputElement;
+    expect(currentHPInput.value).toBe("28");
   });
 
   it("shows locked fields for race, class, and level", () => {
@@ -118,7 +121,7 @@ describe("EditCharacter", () => {
   it("validates max HP below 1", () => {
     renderEdit();
 
-    const maxHPInput = screen.getByLabelText(/max hit points/i);
+    const maxHPInput = screen.getByLabelText(/^max$/i);
     fireEvent.change(maxHPInput, { target: { value: "0" } });
 
     fireEvent.click(screen.getByText(/save changes/i));
@@ -130,7 +133,7 @@ describe("EditCharacter", () => {
   it("validates max HP above 999", () => {
     renderEdit();
 
-    const maxHPInput = screen.getByLabelText(/max hit points/i);
+    const maxHPInput = screen.getByLabelText(/^max$/i);
     fireEvent.change(maxHPInput, { target: { value: "1000" } });
 
     fireEvent.click(screen.getByText(/save changes/i));
@@ -155,7 +158,7 @@ describe("EditCharacter", () => {
   it("clamps current HP when max HP is reduced below current", () => {
     renderEdit();
 
-    const maxHPInput = screen.getByLabelText(/max hit points/i);
+    const maxHPInput = screen.getByLabelText(/^max$/i);
     fireEvent.change(maxHPInput, { target: { value: "20" } });
 
     fireEvent.click(screen.getByText(/save changes/i));
@@ -163,6 +166,44 @@ describe("EditCharacter", () => {
     const saved = mockCharacters[0].data as DnD5eCharacter;
     expect(saved.hitPoints.max).toBe(20);
     expect(saved.hitPoints.current).toBe(20); // was 28, clamped to new max
+  });
+
+  it("saves current HP edits", () => {
+    renderEdit();
+
+    const currentHPInput = screen.getByLabelText(/^current$/i);
+    fireEvent.change(currentHPInput, { target: { value: "15" } });
+
+    fireEvent.click(screen.getByText(/save changes/i));
+
+    const saved = mockCharacters[0].data as DnD5eCharacter;
+    expect(saved.hitPoints.current).toBe(15);
+    expect(saved.hitPoints.max).toBe(30);
+  });
+
+  it("validates current HP cannot be negative", () => {
+    renderEdit();
+
+    const currentHPInput = screen.getByLabelText(/^current$/i);
+    fireEvent.change(currentHPInput, { target: { value: "-1" } });
+
+    fireEvent.click(screen.getByText(/save changes/i));
+
+    expect(screen.getByText(/current hp cannot be negative/i)).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("clamps current HP to max HP on save when current exceeds max", () => {
+    renderEdit();
+
+    const currentHPInput = screen.getByLabelText(/^current$/i);
+    fireEvent.change(currentHPInput, { target: { value: "50" } });
+
+    fireEvent.click(screen.getByText(/save changes/i));
+
+    const saved = mockCharacters[0].data as DnD5eCharacter;
+    expect(saved.hitPoints.current).toBe(30); // clamped to max
+    expect(saved.hitPoints.max).toBe(30);
   });
 
   it("shows not-found state for missing character", () => {

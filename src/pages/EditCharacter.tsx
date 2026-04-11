@@ -21,6 +21,7 @@ import { getProficiencyBonus } from "@/lib/dndRules";
 
 interface EditFormState {
   name: string;
+  currentHP: number;
   maxHP: number;
   alignment: string;
   notes: string;
@@ -28,6 +29,7 @@ interface EditFormState {
 
 interface ValidationErrors {
   name?: string;
+  currentHP?: string;
   maxHP?: string;
 }
 
@@ -44,6 +46,9 @@ function validate(form: EditFormState): ValidationErrors {
   } else if (form.maxHP > 999) {
     errors.maxHP = "Max HP cannot exceed 999.";
   }
+  if (!Number.isFinite(form.currentHP) || form.currentHP < 0) {
+    errors.currentHP = "Current HP cannot be negative.";
+  }
   return errors;
 }
 
@@ -53,6 +58,7 @@ export const EditCharacter = () => {
   const [character, setCharacter] = useState<Character | null>(null);
   const [form, setForm] = useState<EditFormState>({
     name: "",
+    currentHP: 1,
     maxHP: 1,
     alignment: "",
     notes: "",
@@ -72,6 +78,7 @@ export const EditCharacter = () => {
       setCharacter(found);
       setForm({
         name: dnd.name,
+        currentHP: dnd.hitPoints.current,
         maxHP: dnd.hitPoints.max,
         alignment: dnd.alignment || "",
         notes: (dnd as DnD5eCharacter & { notes?: string }).notes || "",
@@ -95,8 +102,7 @@ export const EditCharacter = () => {
 
     const dnd = character.data as DnD5eCharacter;
     const newMaxHP = form.maxHP;
-    // If max HP decreased, clamp current HP
-    const newCurrentHP = Math.min(dnd.hitPoints.current, newMaxHP);
+    const newCurrentHP = Math.min(form.currentHP, newMaxHP);
 
     const updatedData: DnD5eCharacter = {
       ...dnd,
@@ -200,31 +206,48 @@ export const EditCharacter = () => {
               )}
             </div>
 
-            {/* Editable: Max HP */}
+            {/* Editable: Hit Points */}
             <div className="space-y-2">
-              <Label htmlFor="edit-max-hp">Max Hit Points</Label>
+              <Label>Hit Points</Label>
               <div className="flex items-center gap-3">
-                <Input
-                  id="edit-max-hp"
-                  type="number"
-                  min={1}
-                  max={999}
-                  value={form.maxHP}
-                  onChange={(e) => {
-                    setForm({ ...form, maxHP: parseInt(e.target.value) || 0 });
-                    if (errors.maxHP) setErrors({ ...errors, maxHP: undefined });
-                  }}
-                  className="w-28"
-                />
-                <span className="text-sm text-muted-foreground">
-                  Current HP: {dndCharacter.hitPoints.current}
-                  {form.maxHP < dndCharacter.hitPoints.current && (
-                    <span className="text-amber-600 dark:text-amber-400 ml-2">
-                      (will clamp to {form.maxHP})
-                    </span>
-                  )}
-                </span>
+                <div className="space-y-1">
+                  <Label htmlFor="edit-current-hp" className="text-xs text-muted-foreground">Current</Label>
+                  <Input
+                    id="edit-current-hp"
+                    type="number"
+                    min={0}
+                    max={form.maxHP}
+                    value={form.currentHP}
+                    onChange={(e) => {
+                      setForm({ ...form, currentHP: parseInt(e.target.value) || 0 });
+                      if (errors.currentHP) setErrors({ ...errors, currentHP: undefined });
+                    }}
+                    className="w-24"
+                  />
+                </div>
+                <span className="text-muted-foreground mt-5">/</span>
+                <div className="space-y-1">
+                  <Label htmlFor="edit-max-hp" className="text-xs text-muted-foreground">Max</Label>
+                  <Input
+                    id="edit-max-hp"
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={form.maxHP}
+                    onChange={(e) => {
+                      setForm({ ...form, maxHP: parseInt(e.target.value) || 0 });
+                      if (errors.maxHP) setErrors({ ...errors, maxHP: undefined });
+                    }}
+                    className="w-24"
+                  />
+                </div>
               </div>
+              {errors.currentHP && (
+                <p className="text-sm text-destructive flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  {errors.currentHP}
+                </p>
+              )}
               {errors.maxHP && (
                 <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
