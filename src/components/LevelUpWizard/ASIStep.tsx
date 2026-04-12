@@ -87,6 +87,16 @@ export function ASIStep({ abilityScores, choice, onChange }: ASIStepProps) {
         Choose how to apply your Ability Score Improvement. Scores cannot exceed 20.
       </p>
 
+      {/* Feat stub — placeholder for future implementation */}
+      <div className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 opacity-60">
+        <p className="text-sm font-medium text-muted-foreground">
+          Feat Selection — Coming Soon
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Feat selection as an alternative to ASI will be available in a future update.
+        </p>
+      </div>
+
       {/* Mode selector */}
       <div className="grid grid-cols-2 gap-2">
         <button

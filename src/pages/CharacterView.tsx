@@ -404,9 +404,29 @@ export const CharacterView = () => {
     hpGained: number;
     newMaxHP: number;
     newAbilityScores: DnD5eCharacter["abilityScores"];
+    newSpellSlots?: SpellSlots;
   }) => {
     if (!character) return;
     const dndChar = character.data as DnD5eCharacter;
+
+    // Merge new spell slot maxes while preserving current usage
+    let updatedSpellSlots = dndChar.spellSlots;
+    if (result.newSpellSlots) {
+      const base = dndChar.spellSlots ?? result.newSpellSlots;
+      updatedSpellSlots = {} as SpellSlots;
+      for (let i = 1; i <= 9; i++) {
+        const key = `level${i}` as keyof SpellSlots;
+        const oldSlot = base[key];
+        const newSlot = result.newSpellSlots[key];
+        // Gain any newly added slots (difference between new max and old max)
+        const gained = Math.max(0, newSlot.max - oldSlot.max);
+        (updatedSpellSlots as Record<string, { current: number; max: number }>)[key] = {
+          current: Math.min(oldSlot.current + gained, newSlot.max),
+          max: newSlot.max,
+        };
+      }
+    }
+
     const updatedCharacter: Character = {
       ...character,
       data: {
@@ -421,6 +441,7 @@ export const CharacterView = () => {
           current: (dndChar.hitDice?.current ?? dndChar.level) + 1,
           max: result.newLevel,
         },
+        ...(updatedSpellSlots && { spellSlots: updatedSpellSlots }),
       },
     };
     saveCharacter(updatedCharacter);
