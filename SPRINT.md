@@ -49,12 +49,24 @@
 <!-- Updated by agents at end of each session -->
 ### Tonight
 - Next sprint proposed — pending Kay approval.
+- **Action needed:** `@testing-library/dom` missing from node_modules — run `npm install` to restore. 19 UI test suites failing until fixed.
 
 ### Last Run
 - 2026-04-13: CCR-023 character sheet test coverage. Added 54 new tests across 7 new test files: component tests for HeaderInfo (8), StatsBlock (9), EffectsBar (7), SpellList (5), InventoryPanel (10); integration tests for EditCharacter edit flow (9); snapshot tests for CharacterView at levels 1, 2, 3 (3). All 816 tests pass (39 test files), 0 lint errors, build clean. PR #21.
 - 2026-04-11: CCR-021 character edit flow + CCR-022 level-up progression. Rewrote EditCharacter as inline edit page (name, max HP, alignment, notes) with locked race/class/level fields. Enhanced LevelUpWizard with spell slot updates on level-up (preserves used slots, gains new ones), spell slot diff display, and ASI/feat stub at level 4. 24 new tests. All 762 tests pass (32 test files), 0 lint errors, build clean. PR #20.
 - 2026-04-09: CCR-019 inventory & equipment display + CCR-020 spell management. Added armorClassUtils.ts with AC computation from equipped armor (parses compendium AC strings, handles light/medium/heavy + shield + unarmored). Enhanced InventoryPanel with AC display, equipped weapon summary, and weight bar. Refactored SpellsManager to group prepared/known spells by level with section headers; cantrips displayed in compact grid, leveled spells show slot availability per level. 13 new AC utility tests. All 738 tests pass (30 test files), 0 lint errors, build clean.
 - 2026-04-08: CCR-017 component extraction + CCR-018 ability scores wiring. Extracted CharacterView.tsx (1007→~680 lines) into 5 focused components: HeaderInfo, StatsBlock, EffectsBar, SpellList, InventoryPanel. StatsBlock wires computed values: passive Perception, spell save DC, spell attack bonus via rules engine. All 725 tests pass, 0 lint errors, build clean. PR #18.
+
+### Maintenance (2026-04-16)
+- [x] Run lint — 0 errors, 13 pre-existing warnings (same as prior runs)
+- [x] Run tests — 640 tests pass (20 test files), **19 test suites FAIL** due to missing `@testing-library/dom` module (peer dep of `@testing-library/react` not installed; `package-lock.json` modified on disk)
+- [x] Run build — succeeds (5.20s), 1 chunk size warning (1187 kB > 500 kB limit)
+- [x] Code review findings:
+  - Dead code: `NavLink.tsx` and `DnD5eCharacterForm.tsx` are unused components (never imported)
+  - `getAbilityModifier` formula duplicated inline in 8+ locations despite canonical export in `dndRules.ts`
+  - `console.error` in `NotFound.tsx:16` leaks route paths in production
+  - 4d6-drop-lowest roll logic duplicated in `AbilityScoresStep.tsx` and `DnD5eCharacterForm.tsx`
+- [x] Security check: no hardcoded secrets; `dangerouslySetInnerHTML` in `chart.tsx:70` uses programmatic CSS (low risk, no user input flows in currently); no eval/innerHTML/document.write patterns
 
 ### Maintenance (2026-04-14)
 - [x] Run all tests and report failures — 816 tests pass (39 test files), 0 failures
