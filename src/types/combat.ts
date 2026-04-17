@@ -117,6 +117,12 @@ export interface Combatant {
   equippedWeapon?: EquippedWeaponStats;
   /** Exhaustion level (0–6). Level 6 = death. */
   exhaustionLevel?: number;
+  /**
+   * Death saving throw state for player combatants at 0 HP.
+   * Cleared when the combatant is healed above 0 HP or on a natural 20 death save.
+   * 3 successes = stabilized; 3 failures = dead.
+   */
+  deathSaves?: { successes: number; failures: number };
 }
 
 /**

@@ -5,6 +5,12 @@
  */
 
 import { Combatant, Condition, ConditionType } from "@/types/combat";
+import {
+  applyDeathSaveRoll,
+  isStabilized,
+  isDead,
+  type DeathSaveRollResult,
+} from "@/utils/deathSavesUtils";
 import type { DnD5eAbilityScores } from "@/types/character";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +27,7 @@ import {
 import { useState, useEffect } from "react";
 import {
   rollAttack, rollDamage, rollSavingThrow, checkHit,
+  rollD20,
   calcSpellAttackBonus, calcSpellSaveDC,
   type AttackRollResult, type DamageRollBreakdown, type SavingThrowResult,
 } from "@/utils/combatMathUtils";
@@ -58,6 +65,8 @@ interface CombatParticipantProps {
   onConcentrationChange?: (id: string, spellName: string | undefined) => void;
   /** Called when exhaustion level changes */
   onUpdateExhaustion?: (id: string, level: number) => void;
+  /** Called when death saves change (undefined clears the field — used after nat 20 heal) */
+  onUpdateDeathSaves?: (id: string, deathSaves: { successes: number; failures: number } | undefined) => void;
 }
 
 //  Component 
@@ -70,6 +79,7 @@ export const CombatParticipant = ({
   onUpdateConditions,
   onConcentrationChange,
   onUpdateExhaustion,
+  onUpdateDeathSaves,
 }: CombatParticipantProps) => {
 
   //  HP / condition state 
@@ -94,6 +104,9 @@ export const CombatParticipant = ({
   const [saveProficient, setSaveProficient] = useState(false);
   const [saveResult, setSaveResult] = useState<SavingThrowResult | null>(null);
   const [spellAttackResult, setSpellAttackResult] = useState<AttackRollResult | null>(null);
+
+  //  Death save state 
+  const [deathSaveRollResult, setDeathSaveRollResult] = useState<DeathSaveRollResult | null>(null);
 
   //  Concentration state 
   const [showConcInput, setShowConcInput] = useState(false);
@@ -291,6 +304,42 @@ export const CombatParticipant = ({
     setSpellAttackResult(rollAttack(spellcastingStats.attackBonus));
   };
 
+  //  Death save helpers 
+  const handleRollDeathSave = () => {
+    const { roll } = rollD20();
+    const current = combatant.deathSaves ?? { successes: 0, failures: 0 };
+    const result = applyDeathSaveRoll(current, roll);
+    setDeathSaveRollResult(result);
+
+    if (result.isNatural20) {
+      // Natural 20: heal 1 HP (clears death saves via updateCombatantHP reset) and clear saves
+      onUpdateDeathSaves?.(combatant.id, undefined);
+      onUpdateHP(combatant.id, 1);
+    } else if (result.updatedSaves) {
+      onUpdateDeathSaves?.(combatant.id, result.updatedSaves);
+    }
+  };
+
+  const adjustDeathSaveSuccesses = (delta: number) => {
+    const current = combatant.deathSaves ?? { successes: 0, failures: 0 };
+    const updated = {
+      ...current,
+      successes: Math.max(0, Math.min(3, current.successes + delta)),
+    };
+    onUpdateDeathSaves?.(combatant.id, updated);
+    setDeathSaveRollResult(null);
+  };
+
+  const adjustDeathSaveFailures = (delta: number) => {
+    const current = combatant.deathSaves ?? { successes: 0, failures: 0 };
+    const updated = {
+      ...current,
+      failures: Math.max(0, Math.min(3, current.failures + delta)),
+    };
+    onUpdateDeathSaves?.(combatant.id, updated);
+    setDeathSaveRollResult(null);
+  };
+
   //  Timing label helper 
   const getTimingLabel = (timing?: "start" | "end" | "round"): string => {
     switch (timing) {
@@ -473,6 +522,139 @@ export const CombatParticipant = ({
             <div className={`h-full ${getHPProgressColor()} transition-all`} />
           </Progress>
         </div>
+
+        {/*  Death Saves (player combatants at 0 HP only)  */}
+        {combatant.type === "player" && combatant.hitPoints.current === 0 && (
+          <div className="border rounded-md p-3 space-y-2 bg-muted/30">
+            <div className="flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400">
+              <Skull className="w-3.5 h-3.5" />
+              Death Saving Throws
+            </div>
+
+            {/* Successes row */}
+            <div className="flex items-center gap-2">
+              <span className="w-20 text-xs text-muted-foreground">Successes</span>
+              <div className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className={`w-4 h-4 rounded-full border-2 ${
+                      (combatant.deathSaves?.successes ?? 0) > i
+                        ? "bg-green-500 border-green-500"
+                        : "border-muted-foreground"
+                    }`}
+                  />
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => adjustDeathSaveSuccesses(-1)}
+                disabled={!onUpdateDeathSaves || (combatant.deathSaves?.successes ?? 0) <= 0}
+              >
+                <Minus className="w-3 h-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => adjustDeathSaveSuccesses(1)}
+                disabled={!onUpdateDeathSaves || (combatant.deathSaves?.successes ?? 0) >= 3}
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
+            </div>
+
+            {/* Failures row */}
+            <div className="flex items-center gap-2">
+              <span className="w-20 text-xs text-muted-foreground">Failures</span>
+              <div className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className={`w-4 h-4 rounded-full border-2 ${
+                      (combatant.deathSaves?.failures ?? 0) > i
+                        ? "bg-red-500 border-red-500"
+                        : "border-muted-foreground"
+                    }`}
+                  />
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => adjustDeathSaveFailures(-1)}
+                disabled={!onUpdateDeathSaves || (combatant.deathSaves?.failures ?? 0) <= 0}
+              >
+                <Minus className="w-3 h-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => adjustDeathSaveFailures(1)}
+                disabled={!onUpdateDeathSaves || (combatant.deathSaves?.failures ?? 0) >= 3}
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
+            </div>
+
+            {/* Status */}
+            {isStabilized(combatant.deathSaves ?? { successes: 0, failures: 0 }) && (
+              <div className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-500/10 rounded px-2 py-1">
+                ✅ Stabilized
+              </div>
+            )}
+            {isDead(combatant.deathSaves ?? { successes: 0, failures: 0 }) && (
+              <div className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-500/10 rounded px-2 py-1">
+                ☠️ Dead
+              </div>
+            )}
+
+            {/* Roll button (hidden when already stabilized or dead) */}
+            {!isStabilized(combatant.deathSaves ?? { successes: 0, failures: 0 }) &&
+              !isDead(combatant.deathSaves ?? { successes: 0, failures: 0 }) &&
+              onUpdateDeathSaves && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-8"
+                  onClick={handleRollDeathSave}
+                >
+                  <Dices className="w-3.5 h-3.5 mr-1.5" />
+                  Roll Death Save
+                </Button>
+              )}
+
+            {/* Roll result */}
+            {deathSaveRollResult !== null && (
+              <div
+                className={`text-sm rounded p-2 border font-mono ${
+                  deathSaveRollResult.isNatural20
+                    ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-700 dark:text-yellow-300"
+                    : deathSaveRollResult.isNatural1
+                      ? "bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400"
+                      : deathSaveRollResult.successesAdded > 0
+                        ? "bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-300"
+                        : "bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400"
+                }`}
+              >
+                {deathSaveRollResult.roll}
+                <span className="ml-2 font-semibold">
+                  {deathSaveRollResult.isNatural20
+                    ? "NATURAL 20 — Regains 1 HP!"
+                    : deathSaveRollResult.isNatural1
+                      ? "NATURAL 1 — 2 Failures!"
+                      : deathSaveRollResult.successesAdded > 0
+                        ? "SUCCESS"
+                        : "FAILURE"}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/*  Quick adjust buttons  */}
         <div className="grid grid-cols-4 gap-1">

@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Character, DnD5eCharacter } from "@/types/character";
 import { Combatant, CombatantType, Condition, ConditionType } from "@/types/combat";
+import { isStabilized, isDead } from "@/utils/deathSavesUtils";
 import { NPC } from "@/types/npc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -319,7 +320,15 @@ export const CombatTracker = () => {
         });
       }
 
-      return { ...c, hitPoints: { ...c.hitPoints, current: newHP }, conditions: nextConditions };
+      // Clear death saves when healed from 0 HP (player combatants only)
+      const clearDeathSaves = oldHP === 0 && newHP > 0 && c.type === "player";
+
+      return {
+        ...c,
+        hitPoints: { ...c.hitPoints, current: newHP },
+        conditions: nextConditions,
+        ...(clearDeathSaves ? { deathSaves: undefined } : {}),
+      };
     });
     setCombatants(updated);
 
@@ -519,6 +528,37 @@ export const CombatTracker = () => {
     }
 
     setCurrentTurn(nextIndex);
+  };
+
+  /**
+   * Updates or clears the death saves for a combatant.
+   * Fires stabilized/dead toasts when the threshold is reached.
+   * @param id        - The combatant's UUID
+   * @param deathSaves - New saves state, or undefined to clear (e.g., after nat 20 heal)
+   */
+  const handleDeathSavesUpdate = (
+    id: string,
+    deathSaves: { successes: number; failures: number } | undefined
+  ) => {
+    const combatant = combatants.find((c) => c.id === id);
+    setCombatants((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, deathSaves } : c))
+    );
+
+    if (deathSaves && combatant) {
+      if (isStabilized(deathSaves)) {
+        toast({
+          title: `${combatant.name} is Stabilized!`,
+          description: "3 successful death saves — consciousness returns.",
+        });
+      } else if (isDead(deathSaves)) {
+        toast({
+          title: `☠️ ${combatant.name} has Died!`,
+          description: "3 failed death saves — the character has perished.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   /** Updates or clears the concentration spell on a combatant. */
@@ -809,6 +849,7 @@ export const CombatTracker = () => {
                 onUpdateConditions={updateCombatantConditions}
                 onConcentrationChange={handleConcentrationChange}
                 onUpdateExhaustion={updateCombatantExhaustion}
+                onUpdateDeathSaves={handleDeathSavesUpdate}
               />
             ))}
           </div>
