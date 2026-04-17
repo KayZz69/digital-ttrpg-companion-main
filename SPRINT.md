@@ -6,7 +6,7 @@
 ## Current Sprint: Phase 3 — Combat & Mechanics
 
 ### Tasks
-- [ ] CCR-024 — Death saving throws: add death save tracking (3 successes / 3 failures) to `Combatant` type and `CombatParticipant` UI; auto-trigger on player combatant reaching 0 HP; stabilize on 3 successes, death on 3 failures; reset on healing from 0; natural 20 heals 1 HP, natural 1 counts as two failures
+- [x] CCR-024 — Death saving throws: add death save tracking (3 successes / 3 failures) to `Combatant` type and `CombatParticipant` UI; auto-trigger on player combatant reaching 0 HP; stabilize on 3 successes, death on 3 failures; reset on healing from 0; natural 20 heals 1 HP, natural 1 counts as two failures
 - [ ] CCR-025 — Temporary HP: add `tempHP` field to `Combatant`; damage absorbs temp HP before regular HP; temp HP not restorable by healing; UI controls to grant/remove temp HP on combatant cards
 - [ ] CCR-026 — Spell slot combat integration: surface spell slot tracking in `CombatParticipant` for player combatants; add "Cast Spell" action that decrements `spellSlots[level].current` and writes back to character localStorage; show slots remaining per level; auto-set concentration when casting a concentration spell
 - [ ] CCR-027 — Targeted attack flow: build select-target → roll attack (using `rollAttack`/`checkHit` from `combatMathUtils`) → apply damage pipeline in CombatParticipant UI; resolve hit/miss against target AC; on hit, roll damage via `rollDamage` and apply to target HP; support advantage/disadvantage toggle
@@ -48,10 +48,10 @@
 ## Nightly Handoff (Bulhkin)
 <!-- Updated by agents at end of each session -->
 ### Tonight
-- Next sprint proposed — pending Kay approval.
-- **Action needed:** `@testing-library/dom` missing from node_modules — run `npm install` to restore. 19 UI test suites failing until fixed.
+- CCR-025 — Temporary HP: add `tempHP` field to `Combatant`; damage absorbs temp HP before regular HP; temp HP not restorable by healing; UI controls to grant/remove temp HP on combatant cards
 
 ### Last Run
+- 2026-04-18: CCR-024 death saving throws implemented. Added `deathSaves?: { successes; failures }` to Combatant type, death save UI in CombatParticipant for player combatants at 0 HP (dot trackers, roll button, manual ±), nat 20 heals 1 HP and clears saves, nat 1 = 2 failures, 3 successes = stabilized toast, 3 failures = dead toast, reset on heal from 0. 30 new unit tests (deathSavesUtils.test.ts). 846 tests pass (40 files), 0 lint errors, build clean. PR #24.
 - 2026-04-13: CCR-023 character sheet test coverage. Added 54 new tests across 7 new test files: component tests for HeaderInfo (8), StatsBlock (9), EffectsBar (7), SpellList (5), InventoryPanel (10); integration tests for EditCharacter edit flow (9); snapshot tests for CharacterView at levels 1, 2, 3 (3). All 816 tests pass (39 test files), 0 lint errors, build clean. PR #21.
 - 2026-04-11: CCR-021 character edit flow + CCR-022 level-up progression. Rewrote EditCharacter as inline edit page (name, max HP, alignment, notes) with locked race/class/level fields. Enhanced LevelUpWizard with spell slot updates on level-up (preserves used slots, gains new ones), spell slot diff display, and ASI/feat stub at level 4. 24 new tests. All 762 tests pass (32 test files), 0 lint errors, build clean. PR #20.
 - 2026-04-09: CCR-019 inventory & equipment display + CCR-020 spell management. Added armorClassUtils.ts with AC computation from equipped armor (parses compendium AC strings, handles light/medium/heavy + shield + unarmored). Enhanced InventoryPanel with AC display, equipped weapon summary, and weight bar. Refactored SpellsManager to group prepared/known spells by level with section headers; cantrips displayed in compact grid, leveled spells show slot availability per level. 13 new AC utility tests. All 738 tests pass (30 test files), 0 lint errors, build clean.
